@@ -25,10 +25,6 @@ import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -50,6 +46,7 @@ import com.hexgram.android.ui.theme.HexgramColors
 import com.hexgram.android.ui.theme.SerifFont
 import com.hexgram.android.ui.theme.wuxingColor
 import com.hexgram.android.viewmodels.BaziViewModel
+import com.hexgram.shared.GanZhi
 
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
@@ -173,15 +170,15 @@ fun BaziScreen(
         }
 
         // Result display
-        viewModel.result?.let { result ->
+        viewModel.result?.let { r ->
             Spacer(modifier = Modifier.height(24.dp))
             HorizontalDivider(color = HexgramColors.border.copy(alpha = 0.5f))
             Spacer(modifier = Modifier.height(16.dp))
 
             // Name header
-            if (result.name.isNotBlank()) {
+            if (r.name.isNotBlank()) {
                 Text(
-                    text = result.name,
+                    text = r.name,
                     fontSize = 20.sp,
                     fontFamily = SerifFont,
                     fontWeight = FontWeight.Bold,
@@ -191,7 +188,7 @@ fun BaziScreen(
             }
 
             Text(
-                text = "${result.sexLabel}命 · ${result.shengXiao}年",
+                text = "${if (r.sex == "M") "男" else "女"}命 · ${r.shengXiao}年",
                 fontSize = 14.sp,
                 fontFamily = SerifFont,
                 color = HexgramColors.textSecondary
@@ -232,9 +229,9 @@ fun BaziScreen(
                         modifier = Modifier.fillMaxWidth(),
                         horizontalArrangement = Arrangement.SpaceEvenly
                     ) {
-                        for (pillar in result.pillars) {
+                        for (pillar in r.pillars) {
                             Text(
-                                text = pillar.shiShenGan,
+                                text = pillar.shiShen,
                                 fontSize = 11.sp,
                                 fontFamily = SerifFont,
                                 color = HexgramColors.textTertiary,
@@ -251,11 +248,11 @@ fun BaziScreen(
                         modifier = Modifier.fillMaxWidth(),
                         horizontalArrangement = Arrangement.SpaceEvenly
                     ) {
-                        for (pillar in result.pillars) {
+                        for ((index, pillar) in r.pillars.withIndex()) {
                             PillarGanZhiCell(
-                                text = pillar.tianGan,
-                                wuxing = pillar.tianGanWuxing,
-                                isRiGan = pillar == result.pillars[2] && true, // Day pillar tian gan
+                                text = pillar.gan,
+                                wuxing = pillar.wuxing,
+                                isRiGan = index == 2,
                                 modifier = Modifier.weight(1f)
                             )
                         }
@@ -268,10 +265,11 @@ fun BaziScreen(
                         modifier = Modifier.fillMaxWidth(),
                         horizontalArrangement = Arrangement.SpaceEvenly
                     ) {
-                        for (pillar in result.pillars) {
+                        for (pillar in r.pillars) {
+                            val zhiWx = GanZhi.wuxingDiZhi[pillar.zhi] ?: ""
                             PillarGanZhiCell(
-                                text = pillar.diZhi,
-                                wuxing = pillar.diZhiWuxing,
+                                text = pillar.zhi,
+                                wuxing = zhiWx,
                                 isRiGan = false,
                                 modifier = Modifier.weight(1f)
                             )
@@ -280,14 +278,14 @@ fun BaziScreen(
 
                     Spacer(modifier = Modifier.height(4.dp))
 
-                    // Shi Shen for Di Zhi
+                    // Cang Gan labels
                     Row(
                         modifier = Modifier.fillMaxWidth(),
                         horizontalArrangement = Arrangement.SpaceEvenly
                     ) {
-                        for (pillar in result.pillars) {
+                        for (pillar in r.pillars) {
                             Text(
-                                text = pillar.shiShenZhi,
+                                text = pillar.cangGan.joinToString(" ") { it.gan },
                                 fontSize = 11.sp,
                                 fontFamily = SerifFont,
                                 color = HexgramColors.textTertiary,
@@ -301,7 +299,7 @@ fun BaziScreen(
                     HorizontalDivider(color = HexgramColors.border.copy(alpha = 0.3f))
                     Spacer(modifier = Modifier.height(8.dp))
 
-                    // Cang Gan (hidden stems)
+                    // Cang Gan detail
                     Text(
                         text = "藏干",
                         fontSize = 13.sp,
@@ -313,10 +311,10 @@ fun BaziScreen(
                         modifier = Modifier.fillMaxWidth(),
                         horizontalArrangement = Arrangement.SpaceEvenly
                     ) {
-                        for (pillar in result.pillars) {
+                        for (pillar in r.pillars) {
                             Text(
-                                text = pillar.cangGan.joinToString(" "),
-                                fontSize = 13.sp,
+                                text = pillar.cangGan.joinToString(" ") { "${it.gan}${it.shiShen}" },
+                                fontSize = 12.sp,
                                 fontFamily = SerifFont,
                                 color = HexgramColors.textPrimary,
                                 textAlign = TextAlign.Center,
@@ -338,9 +336,9 @@ fun BaziScreen(
                         modifier = Modifier.fillMaxWidth(),
                         horizontalArrangement = Arrangement.SpaceEvenly
                     ) {
-                        for (pillar in result.pillars) {
+                        for (ny in r.naYinPillars) {
                             Text(
-                                text = pillar.naYin,
+                                text = ny,
                                 fontSize = 12.sp,
                                 fontFamily = SerifFont,
                                 color = HexgramColors.textTertiary,
@@ -367,14 +365,14 @@ fun BaziScreen(
                     )
 
                     val wuxingNames = listOf("木", "火", "土", "金", "水")
-                    val maxCount = result.wuxingCounts.values.maxOrNull()?.toFloat() ?: 1f
+                    val maxCount = r.wuxingCounts.values.maxOrNull()?.toFloat() ?: 1f
 
                     for (wx in wuxingNames) {
-                        val count = result.wuxingCounts[wx] ?: 0
+                        val count = r.wuxingCounts[wx] ?: 0.0
                         WuxingBar(
                             name = wx,
                             count = count,
-                            fraction = if (maxCount > 0) count / maxCount else 0f,
+                            fraction = if (maxCount > 0) (count / maxCount).toFloat() else 0f,
                             color = wuxingColor(wx)
                         )
                         Spacer(modifier = Modifier.height(6.dp))
@@ -384,28 +382,76 @@ fun BaziScreen(
                     HorizontalDivider(color = HexgramColors.border.copy(alpha = 0.3f))
                     Spacer(modifier = Modifier.height(8.dp))
 
-                    InfoRow(label = "日主", value = "${result.riZhu} (${result.riZhuWuxing})")
+                    InfoRow(label = "日主", value = "${r.riGan} (${r.riGanWuxing})")
                     Spacer(modifier = Modifier.height(4.dp))
+                    val strengthText = if (r.isStrong) "身旺" else "身弱"
                     InfoRow(
                         label = "日主旺衰",
-                        value = result.riZhuStrength,
-                        valueColor = if (result.riZhuStrength.contains("旺"))
+                        value = strengthText,
+                        valueColor = if (r.isStrong)
                             HexgramColors.yiGreen else HexgramColors.jiRed
                     )
-                    if (result.xiyongShen.isNotBlank()) {
-                        Spacer(modifier = Modifier.height(4.dp))
-                        InfoRow(label = "喜用神", value = result.xiyongShen)
+                }
+            }
+
+            // Shen Sha
+            if (r.shenSha.isNotEmpty()) {
+                Spacer(modifier = Modifier.height(12.dp))
+                PanelCard {
+                    Column {
+                        Text(
+                            text = "神煞",
+                            fontSize = 14.sp,
+                            fontFamily = SerifFont,
+                            fontWeight = FontWeight.Bold,
+                            color = HexgramColors.gold,
+                            modifier = Modifier.padding(bottom = 8.dp)
+                        )
+                        FlowRow(
+                            horizontalArrangement = Arrangement.spacedBy(8.dp),
+                            verticalArrangement = Arrangement.spacedBy(6.dp)
+                        ) {
+                            for (ss in r.shenSha) {
+                                TagChip(text = "${ss.name}(${ss.pillar})")
+                            }
+                        }
+                    }
+                }
+            }
+
+            // Di Zhi Relations
+            if (r.diZhiRelations.isNotEmpty()) {
+                Spacer(modifier = Modifier.height(12.dp))
+                PanelCard {
+                    Column {
+                        Text(
+                            text = "地支关系",
+                            fontSize = 14.sp,
+                            fontFamily = SerifFont,
+                            fontWeight = FontWeight.Bold,
+                            color = HexgramColors.gold,
+                            modifier = Modifier.padding(bottom = 8.dp)
+                        )
+                        for (rel in r.diZhiRelations) {
+                            Text(
+                                text = "${rel.type}：${rel.branches}",
+                                fontSize = 13.sp,
+                                fontFamily = SerifFont,
+                                color = HexgramColors.textPrimary,
+                                modifier = Modifier.padding(bottom = 4.dp)
+                            )
+                        }
                     }
                 }
             }
 
             // Da Yun (Major cycles)
-            if (result.daYun.isNotEmpty()) {
+            if (r.daYun.isNotEmpty()) {
                 Spacer(modifier = Modifier.height(12.dp))
                 PanelCard {
                     Column {
                         Text(
-                            text = "大运",
+                            text = "大运（${if (r.isShunPai) "顺" else "逆"}排）",
                             fontSize = 14.sp,
                             fontFamily = SerifFont,
                             fontWeight = FontWeight.Bold,
@@ -419,8 +465,8 @@ fun BaziScreen(
                                 .horizontalScroll(rememberScrollState()),
                             horizontalArrangement = Arrangement.spacedBy(4.dp)
                         ) {
-                            for (dy in result.daYun) {
-                                val isCurrent = dy.isCurrent
+                            for (dy in r.daYun) {
+                                val isCurrent = r.currentYear >= dy.year && r.currentYear < dy.year + 10
                                 Column(
                                     modifier = Modifier
                                         .width(64.dp)
@@ -439,13 +485,13 @@ fun BaziScreen(
                                     horizontalAlignment = Alignment.CenterHorizontally
                                 ) {
                                     Text(
-                                        text = "${dy.startAge}-${dy.endAge}",
+                                        text = "${dy.age}-${dy.age + 9}",
                                         fontSize = 10.sp,
                                         fontFamily = SerifFont,
                                         color = HexgramColors.textTertiary
                                     )
                                     Text(
-                                        text = dy.ganZhi,
+                                        text = "${dy.gan}${dy.zhi}",
                                         fontSize = 15.sp,
                                         fontFamily = SerifFont,
                                         fontWeight = if (isCurrent) FontWeight.Bold else FontWeight.Normal,
@@ -453,7 +499,7 @@ fun BaziScreen(
                                         else HexgramColors.textPrimary
                                     )
                                     Text(
-                                        text = "${dy.startYear}",
+                                        text = "${dy.year}",
                                         fontSize = 10.sp,
                                         fontFamily = SerifFont,
                                         color = HexgramColors.textTertiary
@@ -475,25 +521,23 @@ fun BaziScreen(
             }
 
             // Liu Nian (Current year)
-            if (result.liuNian.isNotBlank()) {
-                Spacer(modifier = Modifier.height(12.dp))
-                PanelCard {
-                    Column {
-                        Text(
-                            text = "流年",
-                            fontSize = 14.sp,
-                            fontFamily = SerifFont,
-                            fontWeight = FontWeight.Bold,
-                            color = HexgramColors.gold,
-                            modifier = Modifier.padding(bottom = 8.dp)
-                        )
-                        Text(
-                            text = result.liuNian,
-                            fontSize = 14.sp,
-                            fontFamily = SerifFont,
-                            color = HexgramColors.textPrimary
-                        )
-                    }
+            Spacer(modifier = Modifier.height(12.dp))
+            PanelCard {
+                Column {
+                    Text(
+                        text = "流年",
+                        fontSize = 14.sp,
+                        fontFamily = SerifFont,
+                        fontWeight = FontWeight.Bold,
+                        color = HexgramColors.gold,
+                        modifier = Modifier.padding(bottom = 8.dp)
+                    )
+                    Text(
+                        text = "${r.currentYear}年 ${r.liuNianGan}${r.liuNianZhi}（${r.liuNianShiShen}）",
+                        fontSize = 14.sp,
+                        fontFamily = SerifFont,
+                        color = HexgramColors.textPrimary
+                    )
                 }
             }
 
@@ -506,7 +550,7 @@ fun BaziScreen(
                 ResultCard {
                     Column {
                         Text(
-                            text = "🤖 AI深度解读",
+                            text = "AI深度解读",
                             fontSize = 16.sp,
                             fontFamily = SerifFont,
                             fontWeight = FontWeight.Bold,
@@ -518,7 +562,7 @@ fun BaziScreen(
                 }
             } else {
                 GhostButton(
-                    text = "🤖 AI深度解读",
+                    text = "AI深度解读",
                     onClick = { viewModel.requestAI() }
                 )
             }
@@ -577,7 +621,7 @@ private fun PillarGanZhiCell(
 @Composable
 private fun WuxingBar(
     name: String,
-    count: Int,
+    count: Double,
     fraction: Float,
     color: androidx.compose.ui.graphics.Color
 ) {
@@ -604,12 +648,13 @@ private fun WuxingBar(
             trackColor = HexgramColors.bgResult,
         )
         Spacer(modifier = Modifier.width(8.dp))
+        val formatted = if (count == count.toLong().toDouble()) "${count.toInt()}" else "$count"
         Text(
-            text = "$count",
+            text = formatted,
             fontSize = 13.sp,
             fontFamily = SerifFont,
             color = HexgramColors.textSecondary,
-            modifier = Modifier.width(20.dp),
+            modifier = Modifier.width(28.dp),
             textAlign = TextAlign.End
         )
     }
@@ -621,6 +666,7 @@ private fun SexPicker(
     onSelect: (String) -> Unit,
     modifier: Modifier = Modifier
 ) {
+    val options = listOf("M" to "男", "F" to "女")
     Row(
         modifier = modifier
             .height(56.dp)
@@ -628,24 +674,25 @@ private fun SexPicker(
             .border(1.dp, HexgramColors.border, RoundedCornerShape(8.dp)),
         verticalAlignment = Alignment.CenterVertically
     ) {
-        listOf("男", "女").forEach { sex ->
+        for ((code, label) in options) {
+            val isSelected = selected == code
             Box(
                 modifier = Modifier
                     .weight(1f)
                     .fillMaxSize()
                     .background(
-                        if (selected == sex) HexgramColors.gold.copy(alpha = 0.2f)
+                        if (isSelected) HexgramColors.gold.copy(alpha = 0.2f)
                         else HexgramColors.bgResult
                     )
-                    .clickable { onSelect(sex) },
+                    .clickable { onSelect(code) },
                 contentAlignment = Alignment.Center
             ) {
                 Text(
-                    text = sex,
+                    text = label,
                     fontSize = 15.sp,
                     fontFamily = SerifFont,
-                    fontWeight = if (selected == sex) FontWeight.Bold else FontWeight.Normal,
-                    color = if (selected == sex) HexgramColors.gold
+                    fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal,
+                    color = if (isSelected) HexgramColors.gold
                     else HexgramColors.textSecondary
                 )
             }

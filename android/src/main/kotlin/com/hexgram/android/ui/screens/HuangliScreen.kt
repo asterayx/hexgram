@@ -31,7 +31,6 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
@@ -96,9 +95,9 @@ fun HuangliScreen(
                             fontWeight = FontWeight.Bold,
                             color = HexgramColors.goldLight
                         )
-                        viewModel.result?.let { result ->
+                        viewModel.result?.let { r ->
                             Text(
-                                text = result.ganZhiDate,
+                                text = "${r.nianGan}${r.nianZhi}年 ${r.riGan}${r.riZhi}日",
                                 fontSize = 14.sp,
                                 fontFamily = SerifFont,
                                 color = HexgramColors.textSecondary
@@ -172,7 +171,7 @@ fun HuangliScreen(
         }
 
         // Result display
-        viewModel.result?.let { result ->
+        viewModel.result?.let { r ->
             Spacer(modifier = Modifier.height(16.dp))
 
             // Gan Zhi header card
@@ -193,9 +192,9 @@ fun HuangliScreen(
                     Row(
                         horizontalArrangement = Arrangement.spacedBy(16.dp)
                     ) {
-                        InfoBadge(label = "年", value = result.nianGanZhi)
-                        InfoBadge(label = "月", value = result.yueGanZhi)
-                        InfoBadge(label = "日", value = result.riGanZhi)
+                        InfoBadge(label = "年", value = "${r.nianGan}${r.nianZhi}")
+                        InfoBadge(label = "月", value = "${r.yueZhi}月")
+                        InfoBadge(label = "日", value = "${r.riGan}${r.riZhi}")
                     }
 
                     Spacer(modifier = Modifier.height(8.dp))
@@ -203,11 +202,9 @@ fun HuangliScreen(
                     Row(
                         horizontalArrangement = Arrangement.spacedBy(12.dp)
                     ) {
-                        TagChip(text = result.jianChu)
-                        TagChip(text = result.xiu)
-                        if (result.lunarDate.isNotBlank()) {
-                            TagChip(text = result.lunarDate, color = HexgramColors.textSecondary)
-                        }
+                        TagChip(text = "${r.jianChu}日")
+                        TagChip(text = "${r.erShiBaXiu}宿")
+                        TagChip(text = "${r.lunarMonth}月", color = HexgramColors.textSecondary)
                     }
                 }
             }
@@ -215,7 +212,8 @@ fun HuangliScreen(
             Spacer(modifier = Modifier.height(12.dp))
 
             // Yi (宜) section
-            if (result.yi.isNotEmpty()) {
+            val yiItems = r.yi.split(" ").filter { it.isNotBlank() }
+            if (yiItems.isNotEmpty()) {
                 ResultCard {
                     Column {
                         Row(verticalAlignment = Alignment.CenterVertically) {
@@ -249,7 +247,7 @@ fun HuangliScreen(
                             horizontalArrangement = Arrangement.spacedBy(8.dp),
                             verticalArrangement = Arrangement.spacedBy(8.dp)
                         ) {
-                            for (item in result.yi) {
+                            for (item in yiItems) {
                                 TagChip(text = item, color = HexgramColors.yiGreen)
                             }
                         }
@@ -260,7 +258,8 @@ fun HuangliScreen(
             Spacer(modifier = Modifier.height(12.dp))
 
             // Ji (忌) section
-            if (result.ji.isNotEmpty()) {
+            val jiItems = r.ji.split(" ").filter { it.isNotBlank() }
+            if (jiItems.isNotEmpty()) {
                 ResultCard {
                     Column {
                         Row(verticalAlignment = Alignment.CenterVertically) {
@@ -294,7 +293,7 @@ fun HuangliScreen(
                             horizontalArrangement = Arrangement.spacedBy(8.dp),
                             verticalArrangement = Arrangement.spacedBy(8.dp)
                         ) {
-                            for (item in result.ji) {
+                            for (item in jiItems) {
                                 TagChip(text = item, color = HexgramColors.jiRed)
                             }
                         }
@@ -305,41 +304,43 @@ fun HuangliScreen(
             Spacer(modifier = Modifier.height(12.dp))
 
             // Ji Shen Fang Wei (吉神方位)
-            if (result.jishenFangwei.isNotEmpty()) {
-                PanelCard {
-                    Column {
-                        Text(
-                            text = "吉神方位",
-                            fontSize = 14.sp,
-                            fontFamily = SerifFont,
-                            fontWeight = FontWeight.Bold,
-                            color = HexgramColors.gold,
-                            modifier = Modifier.padding(bottom = 12.dp)
-                        )
+            PanelCard {
+                Column {
+                    Text(
+                        text = "吉神方位",
+                        fontSize = 14.sp,
+                        fontFamily = SerifFont,
+                        fontWeight = FontWeight.Bold,
+                        color = HexgramColors.gold,
+                        modifier = Modifier.padding(bottom = 12.dp)
+                    )
 
-                        val items = result.jishenFangwei.entries.toList()
-                        // Display in grid: 2 columns
-                        for (i in items.indices step 2) {
-                            Row(
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .padding(vertical = 4.dp),
-                                horizontalArrangement = Arrangement.SpaceEvenly
-                            ) {
+                    val fangwei = listOf(
+                        "喜神" to r.xiShen,
+                        "财神" to r.caiShen,
+                        "福神" to r.fuShen
+                    )
+                    // Display in grid: 2 columns
+                    for (i in fangwei.indices step 2) {
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(vertical = 4.dp),
+                            horizontalArrangement = Arrangement.SpaceEvenly
+                        ) {
+                            FangweiItem(
+                                label = fangwei[i].first,
+                                value = fangwei[i].second,
+                                modifier = Modifier.weight(1f)
+                            )
+                            if (i + 1 < fangwei.size) {
                                 FangweiItem(
-                                    label = items[i].key,
-                                    value = items[i].value,
+                                    label = fangwei[i + 1].first,
+                                    value = fangwei[i + 1].second,
                                     modifier = Modifier.weight(1f)
                                 )
-                                if (i + 1 < items.size) {
-                                    FangweiItem(
-                                        label = items[i + 1].key,
-                                        value = items[i + 1].value,
-                                        modifier = Modifier.weight(1f)
-                                    )
-                                } else {
-                                    Spacer(modifier = Modifier.weight(1f))
-                                }
+                            } else {
+                                Spacer(modifier = Modifier.weight(1f))
                             }
                         }
                     }
@@ -360,19 +361,22 @@ fun HuangliScreen(
                         modifier = Modifier.padding(bottom = 12.dp)
                     )
 
-                    InfoRow(label = "建星", value = result.jianChu)
+                    InfoRow(label = "建星", value = "${r.jianChu}日")
                     Spacer(modifier = Modifier.height(6.dp))
-                    InfoRow(label = "二十八宿", value = result.xiu)
+                    InfoRow(label = "二十八宿", value = "${r.erShiBaXiu}宿")
                     Spacer(modifier = Modifier.height(6.dp))
-                    if (result.chongSha.isNotBlank()) {
-                        InfoRow(
-                            label = "冲煞",
-                            value = result.chongSha,
-                            valueColor = HexgramColors.jiRed
-                        )
-                        Spacer(modifier = Modifier.height(6.dp))
-                    }
-                    if (result.pengzuBaiji.isNotBlank()) {
+                    InfoRow(label = "星期", value = "星期${r.weekDay}")
+                    Spacer(modifier = Modifier.height(6.dp))
+                    InfoRow(label = "生肖", value = "${r.shengXiao}年")
+                    Spacer(modifier = Modifier.height(6.dp))
+                    InfoRow(
+                        label = "冲煞",
+                        value = "冲${r.chongSha}",
+                        valueColor = HexgramColors.jiRed
+                    )
+
+                    val pengzuBaiji = "${r.pengZuGan}\n${r.pengZuZhi}"
+                    if (pengzuBaiji.isNotBlank()) {
                         HorizontalDivider(
                             color = HexgramColors.border.copy(alpha = 0.3f),
                             modifier = Modifier.padding(vertical = 6.dp)
@@ -385,51 +389,12 @@ fun HuangliScreen(
                             modifier = Modifier.padding(bottom = 4.dp)
                         )
                         Text(
-                            text = result.pengzuBaiji,
+                            text = pengzuBaiji,
                             fontSize = 14.sp,
                             fontFamily = SerifFont,
                             color = HexgramColors.textPrimary,
                             lineHeight = 22.sp
                         )
-                    }
-                    if (result.jiShen.isNotEmpty()) {
-                        HorizontalDivider(
-                            color = HexgramColors.border.copy(alpha = 0.3f),
-                            modifier = Modifier.padding(vertical = 6.dp)
-                        )
-                        Text(
-                            text = "吉神",
-                            fontSize = 13.sp,
-                            fontFamily = SerifFont,
-                            color = HexgramColors.textSecondary,
-                            modifier = Modifier.padding(bottom = 4.dp)
-                        )
-                        FlowRow(
-                            horizontalArrangement = Arrangement.spacedBy(6.dp),
-                            verticalArrangement = Arrangement.spacedBy(6.dp)
-                        ) {
-                            for (item in result.jiShen) {
-                                TagChip(text = item, color = HexgramColors.yiGreen)
-                            }
-                        }
-                    }
-                    if (result.xiongSha.isNotEmpty()) {
-                        Spacer(modifier = Modifier.height(8.dp))
-                        Text(
-                            text = "凶煞",
-                            fontSize = 13.sp,
-                            fontFamily = SerifFont,
-                            color = HexgramColors.textSecondary,
-                            modifier = Modifier.padding(bottom = 4.dp)
-                        )
-                        FlowRow(
-                            horizontalArrangement = Arrangement.spacedBy(6.dp),
-                            verticalArrangement = Arrangement.spacedBy(6.dp)
-                        ) {
-                            for (item in result.xiongSha) {
-                                TagChip(text = item, color = HexgramColors.jiRed)
-                            }
-                        }
                     }
                 }
             }
@@ -443,7 +408,7 @@ fun HuangliScreen(
                 ResultCard {
                     Column {
                         Text(
-                            text = "🤖 AI深度解读",
+                            text = "AI深度解读",
                             fontSize = 16.sp,
                             fontFamily = SerifFont,
                             fontWeight = FontWeight.Bold,
@@ -455,7 +420,7 @@ fun HuangliScreen(
                 }
             } else {
                 GhostButton(
-                    text = "🤖 AI深度解读",
+                    text = "AI深度解读",
                     onClick = { viewModel.requestAI() }
                 )
             }

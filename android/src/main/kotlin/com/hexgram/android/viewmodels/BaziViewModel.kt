@@ -15,7 +15,7 @@ class BaziViewModel : ViewModel() {
     var selectedMonth by mutableStateOf(1)
     var selectedDay by mutableStateOf(1)
     var selectedHourIndex by mutableStateOf(0)
-    var sex by mutableStateOf("男") // "男" or "女"
+    var sex by mutableStateOf("M") // "M" or "F"
     var name by mutableStateOf("")
 
     // Result state
@@ -32,7 +32,7 @@ class BaziViewModel : ViewModel() {
             "辰时 (07-09)", "巳时 (09-11)", "午时 (11-13)", "未时 (13-15)",
             "申时 (15-17)", "酉时 (17-19)", "戌时 (19-21)", "亥时 (21-23)"
         )
-        val HOUR_VALUES = listOf(0, 2, 4, 6, 8, 10, 12, 14, 16, 18, 20, 22)
+        val HOUR_VALUES = listOf(23, 1, 3, 5, 7, 9, 11, 13, 15, 17, 19, 21)
     }
 
     fun calculate() {
@@ -49,12 +49,11 @@ class BaziViewModel : ViewModel() {
         result = null
         resultText = ""
         aiText = ""
-        val now = Calendar.getInstance()
         selectedYear = 1990
         selectedMonth = 1
         selectedDay = 1
         selectedHourIndex = 0
-        sex = "男"
+        sex = "M"
         name = ""
     }
 
