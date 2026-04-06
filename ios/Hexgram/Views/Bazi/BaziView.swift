@@ -2,6 +2,7 @@ import SwiftUI
 
 struct BaziView: View {
     @StateObject private var vm = BaziViewModel()
+    @State private var showShareSheet = false
 
     var body: some View {
         ScrollView {
@@ -95,22 +96,53 @@ struct BaziView: View {
             // 日主分析
             dayMasterSection(r)
 
+            // 纳音
+            naYinSection(r)
+
+            // 神煞
+            if !r.shenSha.isEmpty {
+                shenShaSection(r.shenSha)
+            }
+
+            // 地支关系
+            if !r.diZhiRelations.isEmpty {
+                diZhiRelationsSection(r.diZhiRelations)
+            }
+
             // 大运
             daYunSection(r)
 
             // 流年
             liuNianSection(r)
 
-            // AI按钮
-            Button(action: { Task { await vm.aiRead() } }) {
-                HStack(spacing: 4) {
-                    Text("🤖")
-                    Text("AI深度解读")
+            // 按钮
+            HStack(spacing: 10) {
+                Button(action: { Task { await vm.aiRead() } }) {
+                    HStack(spacing: 4) {
+                        Text("🤖")
+                        Text("AI深度解读")
+                    }
                 }
+                .buttonStyle(GoldButtonStyle())
+
+                Button(action: { showShareSheet = true }) {
+                    HStack(spacing: 4) {
+                        Image(systemName: "square.and.arrow.up")
+                        Text("分享")
+                    }
+                }
+                .buttonStyle(GhostButtonStyle())
             }
-            .buttonStyle(GoldButtonStyle())
         }
         .resultStyle()
+        .sheet(isPresented: $showShareSheet) {
+            if let r = vm.result {
+                let card = PaipanSnapshot.baziCard(result: r)
+                let image = PaipanSnapshot.render(card, size: CGSize(width: 360, height: 350))
+                let items: [Any] = [image as Any, vm.resultText]
+                ShareSheet(items: items.compactMap { $0 is NSNull ? nil : $0 })
+            }
+        }
     }
 
     // MARK: - 四柱网格
@@ -291,6 +323,93 @@ struct BaziView: View {
             }
             .font(.system(size: 12, design: .serif))
             .foregroundColor(.textPrimary)
+        }
+    }
+
+    // MARK: - 纳音
+    private func naYinSection(_ r: BaziResult) -> some View {
+        VStack(spacing: 4) {
+            Text("六十甲���纳音")
+                .font(.system(size: 13, weight: .medium, design: .serif))
+                .foregroundColor(.gold)
+
+            HStack(spacing: 6) {
+                ForEach(Array(r.pillars.enumerated()), id: \.element.id) { i, p in
+                    VStack(spacing: 2) {
+                        Text("\(p.gan)\(p.zhi)")
+                            .font(.system(size: 11, design: .serif))
+                            .foregroundColor(.goldLight)
+                        Text(r.naYinPillars[i])
+                            .font(.system(size: 10, design: .serif))
+                            .foregroundColor(.textSecondary)
+                    }
+                    .frame(maxWidth: .infinity)
+                }
+            }
+        }
+    }
+
+    // MARK: - 神煞
+    private func shenShaSection(_ items: [ShenShaItem]) -> some View {
+        VStack(alignment: .leading, spacing: 4) {
+            Text("神煞")
+                .font(.system(size: 13, weight: .medium, design: .serif))
+                .foregroundColor(.gold)
+
+            FlowLayout(spacing: 6) {
+                ForEach(items) { item in
+                    HStack(spacing: 4) {
+                        Text(item.name)
+                            .font(.system(size: 11, weight: .medium, design: .serif))
+                            .foregroundColor(.goldLight)
+                        Text(item.pillar)
+                            .font(.system(size: 9, design: .serif))
+                            .foregroundColor(.textTertiary)
+                    }
+                    .padding(.horizontal, 8)
+                    .padding(.vertical, 4)
+                    .background(Color.bgPanel)
+                    .clipShape(RoundedRectangle(cornerRadius: 6))
+                    .overlay(RoundedRectangle(cornerRadius: 6).stroke(Color.border, lineWidth: 0.5))
+                }
+            }
+
+            ForEach(items) { item in
+                Text("\(item.name)（\(item.pillar)）：\(item.description)")
+                    .font(.system(size: 10, design: .serif))
+                    .foregroundColor(.textSecondary)
+            }
+        }
+    }
+
+    // MARK: - 地支关系
+    private func diZhiRelationsSection(_ items: [DiZhiRelation]) -> some View {
+        VStack(alignment: .leading, spacing: 4) {
+            Text("合冲刑害")
+                .font(.system(size: 13, weight: .medium, design: .serif))
+                .foregroundColor(.gold)
+
+            ForEach(items) { item in
+                HStack(alignment: .top, spacing: 6) {
+                    Text(item.type)
+                        .font(.system(size: 10, weight: .medium, design: .serif))
+                        .foregroundColor(relationColor(item.type))
+                        .frame(width: 40, alignment: .trailing)
+                    Text(item.detail)
+                        .font(.system(size: 11, design: .serif))
+                        .foregroundColor(.textPrimary)
+                }
+            }
+        }
+    }
+
+    private func relationColor(_ type: String) -> Color {
+        switch type {
+        case "六合", "三合局", "半合": return .yiGreen
+        case "六冲": return .jiRed
+        case "三刑", "自刑": return .accent
+        case "相害": return .textSecondary
+        default: return .gold
         }
     }
 

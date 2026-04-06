@@ -122,6 +122,24 @@ struct DongBianData: Identifiable {
     let teXing: String  // 化墓/化绝等
 }
 
+// MARK: - 暗动数据
+struct AnDongData: Identifiable {
+    let id = UUID()
+    let yaoPos: String
+    let liuqin: String
+    let ganZhi: String
+    let wuxing: String
+    let reason: String  // 日冲/月冲
+}
+
+// MARK: - 三合局数据
+struct SanHePanData: Identifiable {
+    let id = UUID()
+    let branches: String
+    let wuxing: String
+    let detail: String
+}
+
 // MARK: - 完整卦象结果
 struct GuaResult {
     let guaName: String
@@ -147,6 +165,13 @@ struct GuaResult {
     let riGan: String
     let riZhi: String
     let yueZhi: String
+    // 新增
+    let isLiuHeGua: Bool         // 六合卦
+    let anDong: [AnDongData]     // 暗动
+    let yuePo: [Int]             // 月破爻位
+    let isFanYin: Bool           // 反吟
+    let isFuYin: Bool            // 伏吟
+    let sanHe: [SanHePanData]    // 三合局
 }
 
 // MARK: - 纳甲引擎
@@ -383,12 +408,85 @@ class NajiaEngine {
             }
         }
 
-        // 9. 六冲判断
+        // 9. 六冲六合判断
         var isLiuChongGua = true
+        var isLiuHeGua = true
+        let liuHeMap: [String: String] = ["子":"丑","丑":"子","寅":"亥","亥":"寅","卯":"戌","戌":"卯","辰":"酉","酉":"辰","巳":"申","申":"巳","午":"未","未":"午"]
         for i in 0..<3 {
             if LIUCHONG[yaos[i].diZhi] != yaos[i + 3].diZhi {
                 isLiuChongGua = false
-                break
+            }
+            if liuHeMap[yaos[i].diZhi] != yaos[i + 3].diZhi {
+                isLiuHeGua = false
+            }
+        }
+
+        // 10. 暗动检测：日建冲静爻使之暗动（爻旺相时被日冲则暗动）
+        var anDong: [AnDongData] = []
+        for (i, y) in yaos.enumerated() {
+            if !y.isDong { // 仅静爻
+                // 日冲：日支与爻支六冲
+                if LIUCHONG[riZhi] == y.diZhi {
+                    let ws = getWangShuai(wx: y.wuxing, zhi: riZhi)
+                    // 旺相之爻被日冲则暗动，衰弱之爻被日冲则为日破
+                    if ws == "旺" || ws == "相" {
+                        anDong.append(AnDongData(
+                            yaoPos: y.posName, liuqin: y.liuqin,
+                            ganZhi: "\(y.tianGan)\(y.diZhi)", wuxing: y.wuxing,
+                            reason: "日建\(riZhi)冲\(y.diZhi)，爻旺相故暗动"
+                        ))
+                    }
+                }
+            }
+        }
+
+        // 11. 月破检测：月建冲爻（爻休囚时被月冲为月破）
+        var yuePo: [Int] = []
+        let yueWx = GanZhi.wuxingDiZhi[yueZhi] ?? ""
+        for (i, y) in yaos.enumerated() {
+            if LIUCHONG[yueZhi] == y.diZhi {
+                // 月冲且爻不得月令生扶 → 月破
+                let yaoGetsYue = (y.wuxing == yueWx || GanZhi.wxSheng[yueWx] == y.wuxing)
+                if !yaoGetsYue {
+                    yuePo.append(i)
+                }
+            }
+        }
+
+        // 12. 反吟伏吟
+        var isFanYin = false
+        var isFuYin = false
+        if !changingIdx.isEmpty, let cYaos = changedYaos {
+            // 反吟：本卦与变卦六冲（所有爻地支互冲）
+            var allChong = true
+            var allSame = true
+            for i in 0..<6 {
+                if LIUCHONG[yaos[i].diZhi] != cYaos[i].diZhi { allChong = false }
+                if yaos[i].diZhi != cYaos[i].diZhi { allSame = false }
+            }
+            isFanYin = allChong
+            isFuYin = allSame
+        }
+
+        // 13. 三合局检测
+        var sanHe: [SanHePanData] = []
+        let allDiZhi = yaos.map { $0.diZhi }
+        let sanHeJu: [(String, String, String, String)] = [
+            ("申","子","辰","水"), ("寅","午","戌","火"),
+            ("亥","卯","未","木"), ("巳","酉","丑","金")
+        ]
+        for sh in sanHeJu {
+            let has = [sh.0, sh.1, sh.2].filter { z in allDiZhi.contains(z) }
+            if has.count == 3 {
+                // 至少有一个是动爻才算成局
+                let hasDong = yaos.filter { [sh.0, sh.1, sh.2].contains($0.diZhi) && $0.isDong }.count > 0
+                if hasDong || anDong.contains(where: { [sh.0, sh.1, sh.2].contains(String($0.ganZhi.suffix(1))) }) {
+                    sanHe.append(SanHePanData(
+                        branches: "\(sh.0)\(sh.1)\(sh.2)",
+                        wuxing: sh.3,
+                        detail: "\(sh.0)\(sh.1)\(sh.2)三合\(sh.3)局，\(sh.3)五行力量大增"
+                    ))
+                }
             }
         }
 
@@ -415,7 +513,13 @@ class NajiaEngine {
             kongWang: kw,
             riGan: riGan,
             riZhi: riZhi,
-            yueZhi: yueZhi
+            yueZhi: yueZhi,
+            isLiuHeGua: isLiuHeGua,
+            anDong: anDong,
+            yuePo: yuePo,
+            isFanYin: isFanYin,
+            isFuYin: isFuYin,
+            sanHe: sanHe
         )
     }
 
@@ -426,7 +530,10 @@ class NajiaEngine {
         if result.guiHun { t += "（归魂）" }
         t += "\n\n"
         t += "\(result.outerGua)（\(result.outerWx)）上 · \(result.innerGua)（\(result.innerWx)）下　宫属\(result.gongWx)\n"
-        if result.isLiuChongGua { t += "六冲卦 — 主事多变动、冲散\n" }
+        if result.isLiuChongGua { t += "⚡ 六冲卦 — 主事多变动、冲散\n" }
+        if result.isLiuHeGua { t += "🤝 六合卦 — 主事和合、稳定\n" }
+        if result.isFanYin { t += "⚠ 反吟卦 — 主反复不安、事多波折\n" }
+        if result.isFuYin { t += "😩 伏吟卦 — 主呻吟痛苦、进退两难\n" }
         t += "日建\(result.riGan)\(result.riZhi)　月建\(result.yueZhi)月　空亡\(result.kongWang.joined(separator: "·"))\n"
 
         if result.hasChanging {
@@ -464,6 +571,31 @@ class NajiaEngine {
             }
         }
 
+        // 暗动
+        if !result.anDong.isEmpty {
+            t += "\n## 暗动\n\n"
+            for ad in result.anDong {
+                t += "**\(ad.yaoPos)爻** \(ad.liuqin)\(ad.ganZhi)（\(ad.wuxing)）暗动 — \(ad.reason)\n"
+            }
+        }
+
+        // 月破
+        if !result.yuePo.isEmpty {
+            t += "\n## 月破\n\n"
+            for idx in result.yuePo {
+                let y = result.yaos[idx]
+                t += "**\(y.posName)爻** \(y.liuqin)\(y.tianGan)\(y.diZhi)（\(y.wuxing)）月破 — 月建\(result.yueZhi)冲之，爻不得月令，为月破，力量全失\n"
+            }
+        }
+
+        // 三合局
+        if !result.sanHe.isEmpty {
+            t += "\n## 三合局\n\n"
+            for sh in result.sanHe {
+                t += "**\(sh.branches)** 三合\(sh.wuxing)局 — \(sh.detail)\n"
+            }
+        }
+
         t += "\n## 旺衰分析\n\n"
         for y in result.yaos {
             var marks: [String] = []
@@ -471,6 +603,8 @@ class NajiaEngine {
             if y.isShi { marks.append("世") }
             if y.isYing { marks.append("应") }
             if y.isKong { marks.append("空亡") }
+            if result.yuePo.contains(y.pos) { marks.append("月破") }
+            if result.anDong.contains(where: { $0.yaoPos == y.posName }) { marks.append("暗动") }
             let markStr = marks.isEmpty ? "" : "[\(marks.joined(separator: "·"))]"
             t += "\(y.posName)爻 \(y.liuqin)\(y.tianGan)\(y.diZhi)（\(y.wuxing)）\(markStr)：月建\(y.yueEffect)，日建\(y.riWangShuai)\n"
         }

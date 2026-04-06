@@ -32,3 +32,20 @@ targets:
         INFOPLIST_KEY_UISupportedInterfaceOrientations: "UIInterfaceOrientationPortrait"
         INFOPLIST_KEY_UISupportedInterfaceOrientations_iPad: "UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight"
         INFOPLIST_KEY_NSAppTransportSecurity_NSAllowsArbitraryLoads: true
+    dependencies:
+      - target: HexgramWidgetExtension
+
+  HexgramWidgetExtension:
+    type: app-extension
+    platform: iOS
+    product: HexgramWidgetExtension
+    sources:
+      - path: HexgramWidget
+        excludes:
+          - "**/.DS_Store"
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: com.hexgram.app.widget
+        INFOPLIST_KEY_CFBundleDisplayName: "每日黄历"
+        INFOPLIST_KEY_NSExtension_NSExtensionPointIdentifier: "com.apple.widgetkit-extension"
+        SKIP_INSTALL: true

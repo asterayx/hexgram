@@ -2,6 +2,7 @@ import SwiftUI
 
 struct LiuyaoView: View {
     @StateObject private var vm = LiuyaoViewModel()
+    @State private var showShareSheet = false
 
     var body: some View {
         ScrollViewReader { proxy in
@@ -41,6 +42,14 @@ struct LiuyaoView: View {
                     withAnimation {
                         proxy.scrollTo("result", anchor: .top)
                     }
+                }
+            }
+            .sheet(isPresented: $showShareSheet) {
+                if let gua = vm.guaResult {
+                    let card = PaipanSnapshot.liuyaoCard(guaResult: gua, text: vm.resultText)
+                    let image = PaipanSnapshot.render(card, size: CGSize(width: 360, height: 500))
+                    let items: [Any] = [image as Any, vm.resultText]
+                    ShareSheet(items: items.compactMap { $0 is NSNull ? nil : $0 })
                 }
             }
         }
@@ -247,6 +256,14 @@ struct LiuyaoView: View {
                 }
                 .buttonStyle(GoldButtonStyle())
 
+                Button(action: { showShareSheet = true }) {
+                    HStack(spacing: 4) {
+                        Image(systemName: "square.and.arrow.up")
+                        Text("分享")
+                    }
+                }
+                .buttonStyle(GhostButtonStyle())
+
                 Button("再占一卦", action: vm.reset)
                     .buttonStyle(GhostButtonStyle())
             }
@@ -263,12 +280,45 @@ struct LiuyaoView: View {
                 .foregroundColor(.goldLight)
                 .padding(.bottom, 8)
 
-            if gua.isLiuChongGua {
-                Text("⚡ 六冲卦 — 主事多变动")
-                    .font(.system(size: 11, design: .serif))
-                    .foregroundColor(.accent)
-                    .padding(.bottom, 4)
+            // 特殊卦标记
+            VStack(spacing: 2) {
+                if gua.isLiuChongGua {
+                    Text("⚡ 六冲卦 — 主事多变动")
+                        .font(.system(size: 11, design: .serif))
+                        .foregroundColor(.accent)
+                }
+                if gua.isLiuHeGua {
+                    Text("🤝 六合卦 — 主事和合稳定")
+                        .font(.system(size: 11, design: .serif))
+                        .foregroundColor(.yiGreen)
+                }
+                if gua.isFanYin {
+                    Text("⚠ 反吟 — 主反复不安")
+                        .font(.system(size: 11, design: .serif))
+                        .foregroundColor(.jiRed)
+                }
+                if gua.isFuYin {
+                    Text("😩 伏吟 — 主呻吟痛苦")
+                        .font(.system(size: 11, design: .serif))
+                        .foregroundColor(.jiRed)
+                }
+                if !gua.anDong.isEmpty {
+                    Text("👁 暗动：\(gua.anDong.map { "\($0.yaoPos)爻\($0.liuqin)" }.joined(separator: "、"))")
+                        .font(.system(size: 11, design: .serif))
+                        .foregroundColor(.textSecondary)
+                }
+                if !gua.yuePo.isEmpty {
+                    Text("💔 月破：\(gua.yuePo.map { "\(gua.yaos[$0].posName)爻\(gua.yaos[$0].liuqin)" }.joined(separator: "、"))")
+                        .font(.system(size: 11, design: .serif))
+                        .foregroundColor(.jiRed)
+                }
+                if !gua.sanHe.isEmpty {
+                    Text("🔄 \(gua.sanHe.map { $0.branches + "合" + $0.wuxing + "局" }.joined(separator: "、"))")
+                        .font(.system(size: 11, design: .serif))
+                        .foregroundColor(.yiGreen)
+                }
             }
+            .padding(.bottom, 4)
 
             // 表头
             HStack(spacing: 0) {
