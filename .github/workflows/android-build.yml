@@ -35,3 +35,10 @@ jobs:
 
       - name: Build Android app
         run: ./gradlew :android:assembleDebug
+
+      - name: Upload APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: hexgram-debug-apk
+          path: android/build/outputs/apk/debug/*.apk
+          retention-days: 30
