@@ -1,11 +1,10 @@
 [versions]
 kotlin = "2.0.21"
 agp = "8.2.2"
-compose-bom = "2024.02.00"
-compose-compiler = "1.5.8"
-activity-compose = "1.8.2"
-lifecycle = "2.7.0"
-navigation-compose = "2.7.7"
+compose-bom = "2024.09.00"
+activity-compose = "1.9.2"
+lifecycle = "2.8.5"
+navigation-compose = "2.8.0"
 
 [libraries]
 compose-bom = { group = "androidx.compose", name = "compose-bom", version.ref = "compose-bom" }
@@ -22,3 +21,4 @@ navigation-compose = { group = "androidx.navigation", name = "navigation-compose
 [plugins]
 android-application = { id = "com.android.application", version.ref = "agp" }
 kotlin-android = { id = "org.jetbrains.kotlin.android", version.ref = "kotlin" }
+kotlin-compose = { id = "org.jetbrains.kotlin.plugin.compose", version.ref = "kotlin" }
