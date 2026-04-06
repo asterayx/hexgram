@@ -134,10 +134,6 @@ class LiuyaoViewModel: ObservableObject {
     // MARK: - AI解读
     func aiRead() async {
         guard !resultText.isEmpty else { return }
-        var userMsg = "以下是完整的纳甲排盘数据，请进行专业解读：\n\n\(resultText)"
-        if !question.isEmpty {
-            userMsg += "\n\n用户所问之事：\(question)"
-        }
-        await aiService.callLLM(systemPrompt: AIPrompts.liuyao, userContent: userMsg)
+        await aiService.callWorker(type: "liuyao", data: resultText, question: question)
     }
 }

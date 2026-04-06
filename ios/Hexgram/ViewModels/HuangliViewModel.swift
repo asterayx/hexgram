@@ -18,9 +18,6 @@ class HuangliViewModel: ObservableObject {
 
     func aiRead() async {
         guard !resultText.isEmpty else { return }
-        await aiService.callLLM(
-            systemPrompt: AIPrompts.huangli,
-            userContent: "以下是今日黄历信息，请给出详细的择日分析和行事指导：\n\n\(resultText)"
-        )
+        await aiService.callWorker(type: "huangli", data: resultText)
     }
 }

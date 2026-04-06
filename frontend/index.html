@@ -1015,19 +1015,18 @@ function getConfig() {
   };
 }
 
-function callLLM(systemPrompt, userContent, callback) {
+function callLLM(systemPrompt, userContent, callback, type, question) {
   var cfg = getConfig();
 
   // Mode 1: Worker backend
   if (cfg.endpoint) {
+    var workerBody = type
+      ? { type: type, data: userContent, question: question || "" }
+      : { systemPrompt: systemPrompt, hexagramData: { panText: userContent }, question: userContent };
     fetch(cfg.endpoint, {
       method: "POST",
       headers: {"Content-Type": "application/json"},
-      body: JSON.stringify({
-        systemPrompt: systemPrompt,
-        hexagramData: { panText: userContent },
-        question: userContent
-      })
+      body: JSON.stringify(workerBody)
     }).then(function(res) { return res.json(); })
     .then(function(data) {
       if (data.error) throw new Error(data.error);
@@ -1097,22 +1096,20 @@ function renderAIDone(targetId, text, err) {
 function lyAIRead() {
   if (!_lastLyText) { alert("请先完成摇卦排盘"); return; }
   var q = document.getElementById("ly_q").value.trim();
-  var userMsg = "以下是完整的纳甲排盘数据，请进行专业解读：\n\n" + _lastLyText;
-  if (q) userMsg += "\n\n用户所问之事：" + q;
   renderAIResult("ly_ai", "卦师正在参详卦象…");
-  callLLM(PROMPT_LIUYAO, userMsg, function(err, text) { renderAIDone("ly_ai", text, err); });
+  callLLM(PROMPT_LIUYAO, _lastLyText, function(err, text) { renderAIDone("ly_ai", text, err); }, "liuyao", q);
 }
 
 function bzAIRead() {
   if (!_lastBzText) { alert("请先完成八字排盘"); return; }
   renderAIResult("bz_ai", "命理师正在推演命盘…");
-  callLLM(PROMPT_BAZI, "以下是完整的八字排盘数据，请进行专业论命：\n\n" + _lastBzText, function(err, text) { renderAIDone("bz_ai", text, err); });
+  callLLM(PROMPT_BAZI, _lastBzText, function(err, text) { renderAIDone("bz_ai", text, err); }, "bazi");
 }
 
 function hlAIRead() {
   if (!_lastHlText) { alert("请先查询黄历"); return; }
   renderAIResult("hl_ai", "择日师正在分析今日运势…");
-  callLLM(PROMPT_HUANGLI, "以下是今日黄历信息，请给出详细的择日分析和行事指导：\n\n" + _lastHlText, function(err, text) { renderAIDone("hl_ai", text, err); });
+  callLLM(PROMPT_HUANGLI, _lastHlText, function(err, text) { renderAIDone("hl_ai", text, err); }, "huangli");
 }
 
 // Config

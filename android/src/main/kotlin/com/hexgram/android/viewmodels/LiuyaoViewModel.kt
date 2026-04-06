@@ -1,18 +1,22 @@
 package com.hexgram.android.viewmodels
 
+import android.app.Application
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
-import androidx.lifecycle.ViewModel
+import androidx.lifecycle.AndroidViewModel
+import androidx.lifecycle.viewModelScope
+import com.hexgram.android.models.AIService
 import com.hexgram.android.models.Classics
 import com.hexgram.android.models.GuaResult
 import com.hexgram.android.models.NajiaEngine
 import com.hexgram.android.models.CalendarCalc
 import com.hexgram.android.models.YAO_NAMES
+import kotlinx.coroutines.launch
 import java.util.Calendar
 
-class LiuyaoViewModel : ViewModel() {
+class LiuyaoViewModel(application: Application) : AndroidViewModel(application) {
 
     var question by mutableStateOf("")
     var selectedYear by mutableStateOf(Calendar.getInstance().get(Calendar.YEAR))
@@ -125,7 +129,28 @@ class LiuyaoViewModel : ViewModel() {
     }
 
     fun requestAI() {
-        aiText = "请在设置中配置API密钥后使用AI解读功能。"
+        if (resultText.isBlank()) return
+        val endpoint = AIService.getEndpoint(getApplication())
+        if (endpoint.isBlank()) {
+            aiText = "未配置Worker地址。请在设置中配置后端地址。"
+            return
+        }
+        aiLoading = true
+        aiText = ""
+        viewModelScope.launch {
+            try {
+                aiText = AIService.callWorker(
+                    endpoint = endpoint,
+                    type = "liuyao",
+                    data = resultText,
+                    question = question
+                )
+            } catch (e: Exception) {
+                aiText = "AI解读失败：${e.message}"
+            } finally {
+                aiLoading = false
+            }
+        }
     }
 }
 

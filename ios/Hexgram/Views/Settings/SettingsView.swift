@@ -8,9 +8,8 @@ struct SettingsView: View {
         NavigationStack {
             ScrollView {
                 VStack(spacing: 16) {
-                    // Worker后端
                     VStack(alignment: .leading, spacing: 6) {
-                        Text("方式一：Worker后端")
+                        Text("Worker后端地址")
                             .font(.system(size: 13, weight: .medium, design: .serif))
                             .foregroundColor(.goldLight)
 
@@ -19,42 +18,9 @@ struct SettingsView: View {
                             .autocapitalization(.none)
                             .keyboardType(.URL)
 
-                        Text("API Key安全存储在服务端")
+                        Text("AI提示词和API Key安全存储在服务端，App仅发送排盘数据")
                             .font(.system(size: 9, design: .serif))
                             .foregroundColor(.textTertiary)
-                    }
-
-                    Divider().background(Color.border)
-
-                    // 直连API
-                    VStack(alignment: .leading, spacing: 8) {
-                        Text("方式二：直连API")
-                            .font(.system(size: 13, weight: .medium, design: .serif))
-                            .foregroundColor(.goldLight)
-
-                        VStack(alignment: .leading, spacing: 3) {
-                            Text("Provider").font(.system(size: 11, design: .serif)).foregroundColor(.textSecondary)
-                            Picker("", selection: $config.provider) {
-                                Text("Anthropic Claude").tag("anthropic")
-                                Text("OpenAI").tag("openai")
-                                Text("OpenRouter").tag("openrouter")
-                            }
-                            .pickerStyle(.segmented)
-                        }
-
-                        VStack(alignment: .leading, spacing: 3) {
-                            Text("API Key").font(.system(size: 11, design: .serif)).foregroundColor(.textSecondary)
-                            SecureField("sk-...", text: $config.apiKey)
-                                .textFieldStyle(HexgramTextFieldStyle())
-                                .autocapitalization(.none)
-                        }
-
-                        VStack(alignment: .leading, spacing: 3) {
-                            Text("Model").font(.system(size: 11, design: .serif)).foregroundColor(.textSecondary)
-                            TextField("claude-sonnet-4-20250514", text: $config.model)
-                                .textFieldStyle(HexgramTextFieldStyle())
-                                .autocapitalization(.none)
-                        }
                     }
 
                     Button("保存") {

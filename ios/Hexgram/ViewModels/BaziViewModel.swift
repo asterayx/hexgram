@@ -31,9 +31,6 @@ class BaziViewModel: ObservableObject {
 
     func aiRead() async {
         guard !resultText.isEmpty else { return }
-        await aiService.callLLM(
-            systemPrompt: AIPrompts.bazi,
-            userContent: "以下是完整的八字排盘数据，请进行专业论命：\n\n\(resultText)"
-        )
+        await aiService.callWorker(type: "bazi", data: resultText)
     }
 }

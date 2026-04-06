@@ -1,14 +1,18 @@
 package com.hexgram.android.viewmodels
 
+import android.app.Application
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
-import androidx.lifecycle.ViewModel
+import androidx.lifecycle.AndroidViewModel
+import androidx.lifecycle.viewModelScope
+import com.hexgram.android.models.AIService
 import com.hexgram.android.models.BaziEngine
 import com.hexgram.android.models.BaziResult
+import kotlinx.coroutines.launch
 import java.util.Calendar
 
-class BaziViewModel : ViewModel() {
+class BaziViewModel(application: Application) : AndroidViewModel(application) {
 
     // Input state
     var selectedYear by mutableStateOf(1990)
@@ -58,6 +62,26 @@ class BaziViewModel : ViewModel() {
     }
 
     fun requestAI() {
-        aiText = "请在设置中配置API密钥后使用AI解读功能。"
+        if (resultText.isBlank()) return
+        val endpoint = AIService.getEndpoint(getApplication())
+        if (endpoint.isBlank()) {
+            aiText = "未配置Worker地址。请在设置中配置后端地址。"
+            return
+        }
+        aiLoading = true
+        aiText = ""
+        viewModelScope.launch {
+            try {
+                aiText = AIService.callWorker(
+                    endpoint = endpoint,
+                    type = "bazi",
+                    data = resultText
+                )
+            } catch (e: Exception) {
+                aiText = "AI解读失败：${e.message}"
+            } finally {
+                aiLoading = false
+            }
+        }
     }
 }

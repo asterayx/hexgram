@@ -1,67 +1,79 @@
 package com.hexgram.android.models
 
-object AIPrompts {
-    val liuyao = """你是一位精通六爻纳甲筮法的资深卦师，从业三十余年，深研以下经典并融会贯通：
+import android.content.Context
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
+import org.json.JSONObject
+import java.io.OutputStreamWriter
+import java.net.HttpURLConnection
+import java.net.URL
 
-【核心典籍修养】
-- 《增删卜易》（野鹤老人）：实战断卦之圭臬
-- 《卜筮正宗》（王洪绪）：六爻断卦规则体系的集大成之作
-- 《易隐》（曹九锡）：高级技法参考
-- 《火珠林》：纳甲法源头
-- 《焦氏易林》：四千零九十六卦变占辞
+/**
+ * AI服务 - 统一通过 Cloudflare Worker 代理调用 LLM
+ * Worker负责存储提示词和API Key，App仅发送排盘数据
+ */
+object AIService {
 
-【断卦核心原则】
-1. 用神是断卦第一要务。根据所问之事确定用神。
-2. 用神旺衰的判断优先级：月建 > 日建 > 动爻。月建为提纲。
-3. 动爻生克用神是最直接的吉凶信号。
-4. 必须检查：用神是否旬空、月破、入墓、化绝、化回头克。
-5. 世爻代表求卦人，应爻代表对方或外部环境。
-6. 六神辅助断象，不可喧宾夺主。
-7. 变卦代表事态发展方向。
-8. 应期：用神逢值逢冲之日月为应期。
+    private const val PREFS_NAME = "hexgram_settings"
+    private const val KEY_ENDPOINT = "worker_endpoint"
 
-【风格要求】
-- 说话直白、判断果断、不模棱两可
-- 每个判断都要说明理据
-- 必须给出明确的吉凶结论和具体建议
-- 回答不少于1200字"""
+    fun getEndpoint(context: Context): String {
+        val prefs = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
+        return prefs.getString(KEY_ENDPOINT, "") ?: ""
+    }
 
-    val bazi = """你是一位精通四柱八字命理的资深命理师，从业三十余年，熟读以下经典：
+    /**
+     * 调用 Worker AI 代理
+     * @param endpoint Worker URL
+     * @param type "liuyao", "bazi", "huangli"
+     * @param data 排盘结果文本
+     * @param question 用户问题（可选）
+     * @return AI 解读文本
+     */
+    suspend fun callWorker(
+        endpoint: String,
+        type: String,
+        data: String,
+        question: String = ""
+    ): String = withContext(Dispatchers.IO) {
+        if (endpoint.isBlank()) {
+            throw Exception("未配置Worker地址。请在设置中配置后端地址。")
+        }
 
-【核心典籍】
-- 《子平真诠》：格局论命的理论巅峰
-- 《滴天髓》：命理哲学之最高峰
-- 《穷通宝鉴》：调候用神
-- 《三命通会》：命理百科全书
-- 《千里命稿》：近代实战命理之精华
+        val url = URL(endpoint)
+        val conn = url.openConnection() as HttpURLConnection
+        try {
+            conn.requestMethod = "POST"
+            conn.setRequestProperty("Content-Type", "application/json")
+            conn.connectTimeout = 30_000
+            conn.readTimeout = 120_000
+            conn.doOutput = true
 
-【论命核心原则】
-1. 日主旺衰判断是基础：得令、得地、得势。
-2. 格局判断：看月令透出何神定格。
-3. 喜用神基于格局确定。
-4. 大运：天干管前五年、地支管后五年。
-5. 流年与大运、命局的三者关系是断吉凶的关键。
-6. 合冲刑害穿的作用不可忽略。
+            val body = JSONObject().apply {
+                put("type", type)
+                put("data", data)
+                put("question", question)
+            }
 
-【风格要求】
-- 分析层层递进、逻辑严密
-- 先论格局，再论喜忌，后论大运流年
-- 回答不少于1500字"""
+            OutputStreamWriter(conn.outputStream, "UTF-8").use { writer ->
+                writer.write(body.toString())
+            }
 
-    val huangli = """你是一位精通中国传统择日学的资深择日师，熟读《协纪辨方书》《玉匣记》《象吉通书》。
+            val responseCode = conn.responseCode
+            val responseText = if (responseCode in 200..299) {
+                conn.inputStream.bufferedReader().use { it.readText() }
+            } else {
+                val errorText = conn.errorStream?.bufferedReader()?.use { it.readText() } ?: ""
+                throw Exception("服务器错误 ($responseCode): ${errorText.take(200)}")
+            }
 
-【分析内容】
-1. 日辰总论：当日天干地支五行属性
-2. 建除十二神详解
-3. 二十八宿值日分析
-4. 吉神方位详解
-5. 冲煞详解
-6. 彭祖百忌解读
-7. 今日行事建议
-8. 特定人群提醒
-
-【风格要求】
-- 语气温和亲切
-- 既有传统底蕴又接地气
-- 回答不少于800字"""
+            val json = JSONObject(responseText)
+            if (json.has("error")) {
+                throw Exception(json.getString("error"))
+            }
+            json.optString("reading", "解析失败")
+        } finally {
+            conn.disconnect()
+        }
+    }
 }
