@@ -1,0 +1,10 @@
+name = "yijing-api"
+main = "worker.js"
+compatibility_date = "2024-12-01"
+
+# 环境变量在 Cloudflare Dashboard 中设置（Settings > Variables）
+# 不要把 API Key 写在这里
+# [vars]
+# LLM_PROVIDER = "anthropic"
+# ANTHROPIC_MODEL = "claude-sonnet-4-20250514"
+# ALLOWED_ORIGIN = "https://yijing.pages.dev"
