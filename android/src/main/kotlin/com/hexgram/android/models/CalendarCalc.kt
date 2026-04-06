@@ -1,4 +1,4 @@
-package com.hexgram.shared
+package com.hexgram.android.models
 
 import kotlin.math.PI
 import kotlin.math.sin

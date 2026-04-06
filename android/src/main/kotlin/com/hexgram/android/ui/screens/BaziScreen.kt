@@ -46,7 +46,7 @@ import com.hexgram.android.ui.theme.HexgramColors
 import com.hexgram.android.ui.theme.SerifFont
 import com.hexgram.android.ui.theme.wuxingColor
 import com.hexgram.android.viewmodels.BaziViewModel
-import com.hexgram.shared.GanZhi
+import com.hexgram.android.models.GanZhi
 
 @OptIn(ExperimentalLayoutApi::class)
 @Composable

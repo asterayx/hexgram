@@ -1,4 +1,4 @@
-package com.hexgram.shared
+package com.hexgram.android.models
 
 // MARK: - Data classes
 data class BaGuaInfo(val name: String, val wuxing: String, val najiaYang: String, val najiaYin: String)

@@ -14,5 +14,4 @@ dependencyResolutionManagement {
 }
 
 rootProject.name = "Hexgram"
-include(":shared")
 include(":android")

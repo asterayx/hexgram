@@ -1,4 +1,4 @@
-package com.hexgram.shared
+package com.hexgram.android.models
 
 object AIPrompts {
     val liuyao = """你是一位精通六爻纳甲筮法的资深卦师，从业三十余年，深研以下经典并融会贯通：

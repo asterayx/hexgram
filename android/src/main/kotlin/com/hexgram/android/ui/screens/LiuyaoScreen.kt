@@ -48,9 +48,9 @@ import com.hexgram.android.ui.theme.HexgramColors
 import com.hexgram.android.ui.theme.SerifFont
 import com.hexgram.android.ui.theme.wuxingColor
 import com.hexgram.android.viewmodels.LiuyaoViewModel
-import com.hexgram.shared.GuaResult
-import com.hexgram.shared.YAO_NAMES
-import com.hexgram.shared.YAO_LABELS
+import com.hexgram.android.models.GuaResult
+import com.hexgram.android.models.YAO_NAMES
+import com.hexgram.android.models.YAO_LABELS
 
 @Composable
 fun LiuyaoScreen(viewModel: LiuyaoViewModel = viewModel()) {

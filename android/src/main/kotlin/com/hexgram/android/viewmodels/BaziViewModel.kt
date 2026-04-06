@@ -4,8 +4,8 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.lifecycle.ViewModel
-import com.hexgram.shared.BaziEngine
-import com.hexgram.shared.BaziResult
+import com.hexgram.android.models.BaziEngine
+import com.hexgram.android.models.BaziResult
 import java.util.Calendar
 
 class BaziViewModel : ViewModel() {

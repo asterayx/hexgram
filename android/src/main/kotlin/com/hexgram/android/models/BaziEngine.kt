@@ -1,4 +1,4 @@
-package com.hexgram.shared
+package com.hexgram.android.models
 
 data class BaziPillar(
     val label: String,

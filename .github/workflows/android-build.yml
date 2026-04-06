@@ -4,7 +4,6 @@ on:
   push:
     branches: ['*']
     paths:
-      - 'shared/**'
       - 'android/**'
       - '*.gradle.kts'
       - 'gradle/**'
@@ -12,7 +11,6 @@ on:
   pull_request:
     branches: ['*']
     paths:
-      - 'shared/**'
       - 'android/**'
       - '*.gradle.kts'
       - 'gradle/**'
@@ -34,9 +32,6 @@ jobs:
 
       - name: Setup Gradle
         uses: gradle/actions/setup-gradle@v4
-
-      - name: Build shared module
-        run: ./gradlew :shared:compileKotlinAndroid
 
       - name: Build Android app
         run: ./gradlew :android:assembleDebug

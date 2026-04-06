@@ -4,8 +4,8 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.lifecycle.ViewModel
-import com.hexgram.shared.HuangliEngine
-import com.hexgram.shared.HuangliResult
+import com.hexgram.android.models.HuangliEngine
+import com.hexgram.android.models.HuangliResult
 import java.util.Calendar
 
 class HuangliViewModel : ViewModel() {
