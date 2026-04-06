@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <style name="Theme.Hexgram" parent="android:Theme.Material.NoActionBar">
+        <item name="android:statusBarColor">#0d0b08</item>
+        <item name="android:navigationBarColor">#0d0b08</item>
+    </style>
+</resources>
