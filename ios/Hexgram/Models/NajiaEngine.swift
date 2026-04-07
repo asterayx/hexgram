@@ -31,6 +31,9 @@ let NAJIA_DIZHI: [String: (inner: [String], outer: [String])] = [
     "兑": (["巳","卯","丑"], ["亥","酉","未"]),
 ]
 
+// 经卦象名：用于构造全卦名（如"泽火革"）
+let GUA_XIANG: [String: String] = ["乾":"天","坤":"地","坎":"水","离":"火","震":"雷","巽":"风","艮":"山","兑":"泽"]
+
 // MARK: - 六十四卦名表
 let HEXAGRAM_NAMES: [String: String] = [
     "111111":"乾","111110":"夬","111101":"大有","111100":"大壮","111011":"小畜","111010":"需","111001":"大畜","111000":"泰",
@@ -176,6 +179,15 @@ struct GuaResult {
 
 // MARK: - 纳甲引擎
 class NajiaEngine {
+
+    /// 构造全卦名：八纯卦用"X为Y"，其余用"外象内象名"（如"泽火革"）
+    static func fullGuaName(_ key: String) -> String {
+        guard let short = HEXAGRAM_NAMES[key] else { return "未知" }
+        let ik = String(key.prefix(3)), ok = String(key.suffix(3))
+        guard let ig = BAGUA_TABLE[ik], let og = BAGUA_TABLE[ok] else { return short }
+        if ik == ok { return "\(ig.name)为\(GUA_XIANG[ig.name] ?? "")" }
+        return "\(GUA_XIANG[og.name] ?? "")\(GUA_XIANG[ig.name] ?? "")\(short)"
+    }
 
     // MARK: 八宫表
     private static var _baGongTable: [String: GongInfo]?
@@ -491,7 +503,7 @@ class NajiaEngine {
         }
 
         return GuaResult(
-            guaName: HEXAGRAM_NAMES[baseKey] ?? "未知",
+            guaName: fullGuaName(baseKey),
             guaKey: baseKey,
             innerGua: innerGua.name,
             outerGua: outerGua.name,
@@ -504,7 +516,7 @@ class NajiaEngine {
             yaos: yaos,
             hasChanging: !changingIdx.isEmpty,
             changingIdx: changingIdx,
-            changedGuaName: !changingIdx.isEmpty ? HEXAGRAM_NAMES[changedKey] : nil,
+            changedGuaName: !changingIdx.isEmpty ? fullGuaName(changedKey) : nil,
             changedGuaKey: !changingIdx.isEmpty ? changedKey : nil,
             changedYaos: changedYaos,
             dongBianAnalysis: dongBianAnalysis,

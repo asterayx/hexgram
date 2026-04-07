@@ -31,6 +31,9 @@ data class GuaResult(
     val isFanYin: Boolean, val isFuYin: Boolean, val sanHe: List<SanHePanData>
 )
 
+// 经卦象名：用于构造全卦名（如"泽火革"）
+val GUA_XIANG = mapOf("乾" to "天","坤" to "地","坎" to "水","离" to "火","震" to "雷","巽" to "风","艮" to "山","兑" to "泽")
+
 // MARK: - Constants
 val BAGUA_TABLE = mapOf(
     "111" to BaGuaInfo("乾","金","甲","壬"), "000" to BaGuaInfo("坤","土","乙","癸"),
@@ -77,6 +80,16 @@ val CHANGSHENG = mapOf(
 
 // MARK: - NajiaEngine
 object NajiaEngine {
+    /** 构造全卦名：八纯卦用"X为Y"，其余用"外象内象名"（如"泽火革"） */
+    fun fullGuaName(key: String): String {
+        val short = HEXAGRAM_NAMES[key] ?: return "未知"
+        val ik = key.substring(0, 3); val ok = key.substring(3, 6)
+        val ig = BAGUA_TABLE[ik]; val og = BAGUA_TABLE[ok]
+        if (ig == null || og == null) return short
+        if (ik == ok) return "${ig.name}为${GUA_XIANG[ig.name] ?: ""}"
+        return "${GUA_XIANG[og.name] ?: ""}${GUA_XIANG[ig.name] ?: ""}${short}"
+    }
+
     private var _baGongTable: Map<String, GongInfo>? = null
 
     val baGongTable: Map<String, GongInfo>
@@ -317,11 +330,11 @@ object NajiaEngine {
         }
 
         return GuaResult(
-            HEXAGRAM_NAMES[baseKey] ?: "未知", baseKey,
+            fullGuaName(baseKey), baseKey,
             innerGua.name, outerGua.name, innerGua.wuxing, outerGua.wuxing,
             gongInfo.gong, gongWx, gongInfo.youHun, gongInfo.guiHun,
             yaos, changingIdx.isNotEmpty(), changingIdx,
-            if (changingIdx.isNotEmpty()) HEXAGRAM_NAMES[changedKey] else null,
+            if (changingIdx.isNotEmpty()) fullGuaName(changedKey) else null,
             if (changingIdx.isNotEmpty()) changedKey else null,
             changedYaos, dongBianAnalysis, fuShen,
             isLiuChongGua, kw, riGan, riZhi, yueZhi,
