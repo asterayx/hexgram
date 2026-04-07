@@ -40,6 +40,12 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
+import androidx.compose.foundation.border
+import androidx.compose.foundation.layout.widthIn
+import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.text.input.KeyboardType
 import com.hexgram.android.ui.components.GhostButton
 import com.hexgram.android.ui.components.GoldButton
 import com.hexgram.android.ui.components.MarkdownText
@@ -47,6 +53,7 @@ import com.hexgram.android.ui.components.PanelCard
 import com.hexgram.android.ui.components.ResultCard
 import com.hexgram.android.ui.components.SectionHeader
 import com.hexgram.android.ui.components.ThinkingButton
+import com.hexgram.android.ui.share.ShareService
 import com.hexgram.android.ui.theme.HexgramColors
 import com.hexgram.android.viewmodels.LINGQIAN_CATEGORIES
 import com.hexgram.android.viewmodels.LingqianViewModel
@@ -103,11 +110,58 @@ private fun InputSection(vm: LingqianViewModel) {
             singleLine = true
         )
 
-        // 事类下拉
-        LingqianCategoryDropdown(
-            selectedIndex = vm.selectedCategoryIndex,
-            onSelect = { vm.selectedCategoryIndex = it }
-        )
+        Row(
+            horizontalArrangement = Arrangement.spacedBy(12.dp),
+            verticalAlignment = Alignment.Top
+        ) {
+            // 事类下拉
+            LingqianCategoryDropdown(
+                selectedIndex = vm.selectedCategoryIndex,
+                onSelect = { vm.selectedCategoryIndex = it }
+            )
+
+            // 性别选择
+            Column {
+                Text("性别", fontSize = 11.sp, color = HexgramColors.textSecondary)
+                Row(horizontalArrangement = Arrangement.spacedBy(0.dp)) {
+                    listOf("男" to 0, "女" to 1).forEach { (label, idx) ->
+                        val selected = vm.selectedGender == idx
+                        Text(
+                            text = label,
+                            color = if (selected) HexgramColors.bgPrimary else HexgramColors.gold,
+                            fontSize = 14.sp,
+                            textAlign = TextAlign.Center,
+                            modifier = Modifier
+                                .clip(RoundedCornerShape(if (idx == 0) 6.dp else 0.dp, if (idx == 1) 6.dp else 0.dp, if (idx == 1) 6.dp else 0.dp, if (idx == 0) 6.dp else 0.dp))
+                                .background(if (selected) HexgramColors.gold else HexgramColors.bgPanel)
+                                .border(1.dp, HexgramColors.gold, RoundedCornerShape(if (idx == 0) 6.dp else 0.dp, if (idx == 1) 6.dp else 0.dp, if (idx == 1) 6.dp else 0.dp, if (idx == 0) 6.dp else 0.dp))
+                                .clickable { vm.selectedGender = idx }
+                                .padding(horizontal = 12.dp, vertical = 8.dp)
+                        )
+                    }
+                }
+            }
+
+            // 年龄输入
+            Column {
+                Text("年龄", fontSize = 11.sp, color = HexgramColors.textSecondary)
+                OutlinedTextField(
+                    value = vm.ageText,
+                    onValueChange = { vm.ageText = it.filter { c -> c.isDigit() } },
+                    placeholder = { Text("岁", color = HexgramColors.textTertiary, fontSize = 14.sp) },
+                    modifier = Modifier.widthIn(max = 70.dp),
+                    colors = OutlinedTextFieldDefaults.colors(
+                        focusedTextColor = HexgramColors.textPrimary,
+                        unfocusedTextColor = HexgramColors.textPrimary,
+                        focusedBorderColor = HexgramColors.gold,
+                        unfocusedBorderColor = HexgramColors.border,
+                        cursorColor = HexgramColors.gold,
+                    ),
+                    singleLine = true,
+                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                )
+            }
+        }
     }
 }
 
@@ -235,6 +289,9 @@ private fun ShakeSection(vm: LingqianViewModel) {
 
 @Composable
 private fun ResultSection(vm: LingqianViewModel) {
+    val context = LocalContext.current
+    val density = LocalDensity.current
+
     ResultCard {
         Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
             MarkdownText(vm.resultText)
@@ -255,8 +312,35 @@ private fun ResultSection(vm: LingqianViewModel) {
                 }
             }
 
-            GhostButton(text = "再求一签", onClick = { vm.reset() })
+            Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                GhostButton(
+                    text = "分享灵签",
+                    onClick = {
+                        val widthPx = with(density) { 360.dp.roundToPx() }
+                        ShareService.shareComposable(context, widthPx, "北帝灵签") {
+                            LingqianShareCard(vm)
+                        }
+                    }
+                )
+                GhostButton(text = "再求一签", onClick = { vm.reset() })
+            }
         }
+    }
+}
+
+@Composable
+private fun LingqianShareCard(vm: LingqianViewModel) {
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .background(HexgramColors.bgPrimary)
+            .padding(16.dp)
+    ) {
+        Text(
+            text = vm.resultText + vm.detailText,
+            color = HexgramColors.textPrimary,
+            fontSize = 14.sp
+        )
     }
 }
 

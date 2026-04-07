@@ -42,6 +42,9 @@ data class LingqianResult(
     val xiWen: String,
     val shiYue: String,
     val neiZhao: String,
+    val suijunZongShi: String = "",
+    val suijunAgeRange: String = "",
+    val suijunFortune: String = "",
 )
 
 class LingqianViewModel(application: Application) : AndroidViewModel(application) {
@@ -51,6 +54,8 @@ class LingqianViewModel(application: Application) : AndroidViewModel(application
     var phase by mutableStateOf(Phase.INPUT)
     var question by mutableStateOf("")
     var selectedCategoryIndex by mutableIntStateOf(0)
+    var ageText by mutableStateOf("")
+    var selectedGender by mutableIntStateOf(0)  // 0=男, 1=女
     var qianResult by mutableStateOf<LingqianResult?>(null)
     var resultText by mutableStateOf("")
     var detailText by mutableStateOf("")
@@ -113,6 +118,9 @@ class LingqianViewModel(application: Application) : AndroidViewModel(application
                         put("qianNum", num)
                         put("category", selectedCategoryKey)
                         put("question", question)
+                        put("gender", if (selectedGender == 0) "男" else "女")
+                        val age = ageText.toIntOrNull()
+                        if (age != null && age > 0) put("age", age)
                     }
                     OutputStreamWriter(conn.outputStream, "UTF-8").use { it.write(body.toString()) }
 
@@ -127,6 +135,7 @@ class LingqianViewModel(application: Application) : AndroidViewModel(application
                 val json = JSONObject(response)
                 val qian = json.optJSONObject("qian")
                 if (qian != null) {
+                    val suijun = json.optJSONObject("suijun")
                     qianResult = LingqianResult(
                         qianNum = qian.optInt("qianNum", num),
                         qianName = qian.optString("qianName", ""),
@@ -136,6 +145,9 @@ class LingqianViewModel(application: Application) : AndroidViewModel(application
                         xiWen = qian.optString("xiWen", ""),
                         shiYue = qian.optString("shiYue", ""),
                         neiZhao = qian.optString("neiZhao", ""),
+                        suijunZongShi = suijun?.optString("zongShi", "") ?: "",
+                        suijunAgeRange = suijun?.optString("ageRange", "") ?: "",
+                        suijunFortune = suijun?.optString("fortune", "") ?: "",
                     )
                     resultText = formatResult(qianResult!!)
                     detailText = formatDetail(json.optJSONObject("detail"))
@@ -154,6 +166,11 @@ class LingqianViewModel(application: Application) : AndroidViewModel(application
         val sb = StringBuilder()
         sb.append("## 第${r.qianNum}签 · ${r.qianName}\n\n")
         if (r.guaXiang.isNotEmpty()) sb.append("**${r.guaXiang}** · ${r.qianType}\n\n")
+        if (r.suijunZongShi.isNotEmpty()) sb.append("### 岁君总诗\n${r.suijunZongShi}\n\n")
+        if (r.suijunFortune.isNotEmpty()) {
+            val genderLabel = if (selectedGender == 0) "男" else "女"
+            sb.append("### 流年运势（${genderLabel}·${r.suijunAgeRange}）\n${r.suijunFortune}\n\n")
+        }
         if (r.shiYue.isNotEmpty()) sb.append("### 诗曰\n${r.shiYue}\n\n")
         if (r.neiZhao.isNotEmpty()) sb.append("**内兆**：${r.neiZhao}\n\n")
         if (r.xiWen.isNotEmpty()) sb.append("### 典故\n${r.xiWen}\n\n")

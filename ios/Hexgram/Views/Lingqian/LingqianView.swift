@@ -2,6 +2,7 @@ import SwiftUI
 
 struct LingqianView: View {
     @StateObject private var vm = LingqianViewModel()
+    @State private var showShareSheet = false
 
     var body: some View {
         ScrollViewReader { proxy in
@@ -46,7 +47,7 @@ struct LingqianView: View {
             TextField("心中所问之事（可留空）", text: $vm.question)
                 .textFieldStyle(HexgramTextFieldStyle())
 
-            HStack(spacing: 8) {
+            HStack(spacing: 12) {
                 VStack(alignment: .leading, spacing: 3) {
                     Text("事类").font(.system(size: 11, design: .serif)).foregroundColor(.textSecondary)
                     Picker("", selection: $vm.selectedCategoryIndex) {
@@ -57,6 +58,25 @@ struct LingqianView: View {
                     .pickerStyle(.menu)
                     .tint(.gold)
                 }
+
+                VStack(alignment: .leading, spacing: 3) {
+                    Text("性别").font(.system(size: 11, design: .serif)).foregroundColor(.textSecondary)
+                    Picker("", selection: $vm.selectedGender) {
+                        Text("男").tag(0)
+                        Text("女").tag(1)
+                    }
+                    .pickerStyle(.segmented)
+                    .frame(width: 80)
+                }
+
+                VStack(alignment: .leading, spacing: 3) {
+                    Text("年龄").font(.system(size: 11, design: .serif)).foregroundColor(.textSecondary)
+                    TextField("岁", text: $vm.ageText)
+                        .textFieldStyle(HexgramTextFieldStyle())
+                        .frame(width: 60)
+                        .keyboardType(.numberPad)
+                }
+
                 Spacer()
             }
         }
@@ -163,10 +183,24 @@ struct LingqianView: View {
                 }
             }
 
-            Button("再求一签", action: vm.reset)
+            HStack(spacing: 10) {
+                Button(action: { showShareSheet = true }) {
+                    HStack(spacing: 4) {
+                        Image(systemName: "square.and.arrow.up")
+                        Text("分享")
+                    }
+                }
                 .buttonStyle(GhostButtonStyle())
+
+                Button("再求一签", action: vm.reset)
+                    .buttonStyle(GhostButtonStyle())
+            }
         }
         .resultStyle()
+        .sheet(isPresented: $showShareSheet) {
+            let items: [Any] = [vm.resultText + vm.detailText].compactMap { $0 }
+            ShareSheet(items: items)
+        }
     }
 
     // MARK: - AI区域
