@@ -1,7 +1,6 @@
 package com.hexgram.android.viewmodels
 
 import android.app.Application
-import android.util.Log
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
@@ -17,8 +16,6 @@ import org.json.JSONObject
 import java.io.OutputStreamWriter
 import java.net.HttpURLConnection
 import java.net.URL
-
-private const val TAG = "LingqianVM"
 
 data class LingqianCategory(val key: String, val label: String)
 
@@ -136,12 +133,9 @@ class LingqianViewModel(application: Application) : AndroidViewModel(application
                 }
 
                 val json = JSONObject(response)
-                Log.d(TAG, "Response keys: ${json.keys().asSequence().toList()}")
                 val qian = json.optJSONObject("qian")
                 if (qian != null) {
                     val suijun = json.optJSONObject("suijun")
-                    Log.d(TAG, "suijun object: $suijun")
-                    Log.d(TAG, "suijun zongShi: ${suijun?.optString("zongShi", "EMPTY")}")
                     qianResult = LingqianResult(
                         qianNum = qian.optInt("qianNum", num),
                         qianName = qian.optString("qianName", ""),
@@ -156,7 +150,6 @@ class LingqianViewModel(application: Application) : AndroidViewModel(application
                         suijunFortune = suijun?.optString("fortune", "") ?: "",
                     )
                     resultText = formatResult(qianResult!!)
-                    Log.d(TAG, "resultText contains 岁君: ${resultText.contains("岁君")}")
                     detailText = formatDetail(json.optJSONObject("detail"))
                 } else {
                     resultText = "## 第${num}签\n\n获取签文失败"
