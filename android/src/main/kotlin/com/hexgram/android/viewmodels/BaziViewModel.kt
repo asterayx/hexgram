@@ -9,6 +9,7 @@ import androidx.lifecycle.viewModelScope
 import com.hexgram.android.models.AIService
 import com.hexgram.android.models.BaziEngine
 import com.hexgram.android.models.BaziResult
+import com.hexgram.android.models.LunarCalendar
 import kotlinx.coroutines.launch
 import java.util.Calendar
 
@@ -21,6 +22,10 @@ class BaziViewModel(application: Application) : AndroidViewModel(application) {
     var selectedHourIndex by mutableStateOf(0)
     var sex by mutableStateOf("M") // "M" or "F"
     var name by mutableStateOf("")
+
+    // 阴历模式
+    var isLunar by mutableStateOf(false)
+    var lunarDisplayString by mutableStateOf("")
 
     // Result state
     var result by mutableStateOf<BaziResult?>(null)
@@ -41,13 +46,30 @@ class BaziViewModel(application: Application) : AndroidViewModel(application) {
 
     fun calculate() {
         val hourValue = HOUR_VALUES[selectedHourIndex]
-        val baziResult = BaziEngine.calculate(
-            selectedYear, selectedMonth, selectedDay,
-            hourValue, sex, name
-        )
+
+        val y: Int; val m: Int; val d: Int
+        if (isLunar) {
+            val solar = LunarCalendar.lunarToSolar(selectedYear, selectedMonth, selectedDay)
+                ?: return
+            y = solar.first; m = solar.second; d = solar.third
+            val lunarDate = LunarCalendar.LunarDate(selectedYear, selectedMonth, selectedDay)
+            lunarDisplayString = lunarDate.displayString
+        } else {
+            y = selectedYear; m = selectedMonth; d = selectedDay
+            lunarDisplayString = ""
+        }
+
+        val baziResult = BaziEngine.calculate(y, m, d, hourValue, sex, name)
         result = baziResult
-        resultText = BaziEngine.formatPlainText(baziResult)
+        var text = BaziEngine.formatPlainText(baziResult)
+        if (isLunar && lunarDisplayString.isNotEmpty()) {
+            text = "【$lunarDisplayString】\n$text"
+        }
+        resultText = text
     }
+
+    val lunarMaxDay: Int
+        get() = LunarCalendar.daysInLunarMonth(selectedYear, selectedMonth)
 
     fun reset() {
         result = null

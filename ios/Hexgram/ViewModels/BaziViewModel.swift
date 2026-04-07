@@ -9,6 +9,13 @@ class BaziViewModel: ObservableObject {
     @Published var result: BaziResult?
     @Published var resultText = ""
 
+    // 阴历模式
+    @Published var isLunar = false
+    @Published var lunarYear = 1990
+    @Published var lunarMonth = 1
+    @Published var lunarDay = 1
+    @Published var lunarDisplayString = ""
+
     let aiService = AIService()
 
     static let hourOptions: [(label: String, value: Int)] = [
@@ -18,19 +25,42 @@ class BaziViewModel: ObservableObject {
     ]
 
     func calculate() {
-        let comps = Calendar.current.dateComponents([.year, .month, .day], from: selectedDate)
-        guard let y = comps.year, let m = comps.month, let d = comps.day else { return }
+        var y: Int, m: Int, d: Int
+
+        if isLunar {
+            // 阴历→公历转换
+            guard let solar = LunarCalendar.lunarToSolar(year: lunarYear, month: lunarMonth, day: lunarDay) else {
+                return
+            }
+            y = solar.year; m = solar.month; d = solar.day
+            let lunarDate = LunarCalendar.LunarDate(year: lunarYear, month: lunarMonth, day: lunarDay, isLeapMonth: false)
+            lunarDisplayString = lunarDate.displayString
+        } else {
+            let comps = Calendar.current.dateComponents([.year, .month, .day], from: selectedDate)
+            guard let cy = comps.year, let cm = comps.month, let cd = comps.day else { return }
+            y = cy; m = cm; d = cd
+            lunarDisplayString = ""
+        }
 
         let r = BaziEngine.calculate(
             year: y, month: m, day: d,
             hour: selectedHour, sex: sex, name: name
         )
         result = r
-        resultText = BaziEngine.formatPlainText(r)
+        var text = BaziEngine.formatPlainText(r)
+        if isLunar, !lunarDisplayString.isEmpty {
+            text = "【\(lunarDisplayString)】\n" + text
+        }
+        resultText = text
     }
 
     func aiRead() async {
         guard !resultText.isEmpty else { return }
         await aiService.callWorker(type: "bazi", data: resultText)
+    }
+
+    // 阴历月最大天数
+    var lunarMaxDay: Int {
+        LunarCalendar.daysInLunarMonth(year: lunarYear, month: lunarMonth)
     }
 }
