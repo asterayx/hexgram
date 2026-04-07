@@ -133,7 +133,7 @@ private fun InputSection(vm: LingqianViewModel) {
                             textAlign = TextAlign.Center,
                             modifier = Modifier
                                 .clip(RoundedCornerShape(if (idx == 0) 6.dp else 0.dp, if (idx == 1) 6.dp else 0.dp, if (idx == 1) 6.dp else 0.dp, if (idx == 0) 6.dp else 0.dp))
-                                .background(if (selected) HexgramColors.gold else HexgramColors.bgPrimaryPanel)
+                                .background(if (selected) HexgramColors.gold else HexgramColors.bgPanel)
                                 .border(1.dp, HexgramColors.gold, RoundedCornerShape(if (idx == 0) 6.dp else 0.dp, if (idx == 1) 6.dp else 0.dp, if (idx == 1) 6.dp else 0.dp, if (idx == 0) 6.dp else 0.dp))
                                 .clickable { vm.selectedGender = idx }
                                 .padding(horizontal = 12.dp, vertical = 8.dp)
@@ -177,14 +177,14 @@ private fun LingqianCategoryDropdown(selectedIndex: Int, onSelect: (Int) -> Unit
                 fontSize = 14.sp,
                 modifier = Modifier
                     .clip(RoundedCornerShape(6.dp))
-                    .background(HexgramColors.bgPrimaryPanel)
+                    .background(HexgramColors.bgPanel)
                     .clickable { expanded = true }
                     .padding(horizontal = 12.dp, vertical = 8.dp)
             )
             DropdownMenu(
                 expanded = expanded,
                 onDismissRequest = { expanded = false },
-                modifier = Modifier.background(HexgramColors.bgPrimaryPanel)
+                modifier = Modifier.background(HexgramColors.bgPanel)
             ) {
                 LINGQIAN_CATEGORIES.forEachIndexed { index, cat ->
                     DropdownMenuItem(
