@@ -138,9 +138,13 @@ fun LiuyaoScreen(viewModel: LiuyaoViewModel = viewModel()) {
         Spacer(modifier = Modifier.height(16.dp))
 
         // Buttons
-        Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(12.dp, Alignment.CenterHorizontally)) {
-            if (viewModel.lines.isNotEmpty()) GhostButton("撤回", { viewModel.undo() })
-            if (viewModel.lines.size < 6) GoldButton(if (viewModel.isTossing) "摇卦中…" else "🪙 摇卦", { viewModel.toss() })
+        if (viewModel.lines.size < 6) {
+            GoldButton(if (viewModel.isTossing) "摇卦中…" else "🪙 摇卦", { viewModel.toss() })
+        }
+
+        if (viewModel.lines.isNotEmpty()) {
+            Spacer(modifier = Modifier.height(8.dp))
+            GhostButton("撤回", { viewModel.undo() })
         }
 
         if (viewModel.lines.size >= 6 && viewModel.guaResult == null) {
