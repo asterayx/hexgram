@@ -97,6 +97,81 @@ struct PaipanSnapshot {
         .background(Color(hex: "0d0b08"))
     }
 
+    /// 黄历分享卡片
+    static func huangliCard(result: HuangliResult) -> some View {
+        VStack(spacing: 12) {
+            Text("\(result.year)年\(result.month)月\(result.day)日　星期\(result.weekDay)")
+                .font(.system(size: 16, design: .serif))
+                .foregroundColor(Color(hex: "f5deb3"))
+
+            Text("\(result.riGan)\(result.riZhi)日")
+                .font(.system(size: 28, weight: .medium, design: .serif))
+                .foregroundColor(Color(hex: "c9a96e"))
+
+            Text("\(result.nianGan)\(result.nianZhi)年　\(result.lunarMonth)月　\(result.shengXiao)年　\(result.jianChu)日　\(result.erShiBaXiu)宿")
+                .font(.system(size: 10, design: .serif))
+                .foregroundColor(Color(hex: "8b7355"))
+
+            Divider().background(Color(hex: "3d3425"))
+
+            // 宜
+            HStack(alignment: .top) {
+                Text("宜")
+                    .font(.system(size: 14, weight: .medium, design: .serif))
+                    .foregroundColor(Color(hex: "8bc34a"))
+                    .frame(width: 24)
+                Text(result.yi.isEmpty ? "无特别宜事" : result.yi)
+                    .font(.system(size: 12, design: .serif))
+                    .foregroundColor(Color(hex: "e8dcc8"))
+                    .lineSpacing(6)
+                Spacer()
+            }
+
+            // 忌
+            HStack(alignment: .top) {
+                Text("忌")
+                    .font(.system(size: 14, weight: .medium, design: .serif))
+                    .foregroundColor(Color(hex: "e57373"))
+                    .frame(width: 24)
+                Text(result.ji)
+                    .font(.system(size: 12, design: .serif))
+                    .foregroundColor(Color(hex: "e8dcc8"))
+                    .lineSpacing(6)
+                Spacer()
+            }
+
+            // 方位
+            HStack {
+                ForEach(["喜神", "财神", "福神"], id: \.self) { name in
+                    let dir = name == "喜神" ? result.xiShen : (name == "财神" ? result.caiShen : result.fuShen)
+                    VStack(spacing: 2) {
+                        Text(name)
+                            .font(.system(size: 10, design: .serif))
+                            .foregroundColor(Color(hex: "8b7355"))
+                        Text(dir)
+                            .font(.system(size: 12, design: .serif))
+                            .foregroundColor(Color(hex: "c9a96e"))
+                    }
+                    .frame(maxWidth: .infinity)
+                }
+            }
+
+            Divider().background(Color(hex: "3d3425"))
+
+            HStack {
+                Text("冲\(result.chongSha)")
+                    .font(.system(size: 10, design: .serif))
+                    .foregroundColor(Color(hex: "8b7355"))
+                Spacer()
+                Text("易学三合 · 每日黄历")
+                    .font(.system(size: 9, design: .serif))
+                    .foregroundColor(Color(hex: "5a4d3a"))
+            }
+        }
+        .padding(16)
+        .background(Color(hex: "0d0b08"))
+    }
+
     /// 八字排盘分享卡片
     static func baziCard(result: BaziResult) -> some View {
         VStack(spacing: 12) {

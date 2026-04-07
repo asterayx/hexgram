@@ -2,6 +2,7 @@ import SwiftUI
 
 struct HuangliView: View {
     @StateObject private var vm = HuangliViewModel()
+    @State private var showShareSheet = false
 
     var body: some View {
         ScrollView {
@@ -54,13 +55,32 @@ struct HuangliView: View {
             detailInfo(r)
 
             // AI按钮
-            Button(action: { Task { await vm.aiRead() } }) {
-                HStack(spacing: 4) {
-                    Text("🤖")
-                    Text("AI深度解读")
+            if vm.aiService.isLoading {
+                ThinkingButton(text: "择日师正在分析运势…")
+            } else {
+                Button(action: { Task { await vm.aiRead() } }) {
+                    HStack(spacing: 4) {
+                        Text("🤖")
+                        Text("AI深度解读")
+                    }
                 }
+                .buttonStyle(GoldButtonStyle())
+
+                Button(action: { showShareSheet = true }) {
+                    HStack(spacing: 4) {
+                        Image(systemName: "square.and.arrow.up")
+                        Text("分享")
+                    }
+                }
+                .buttonStyle(GhostButtonStyle())
             }
-            .buttonStyle(GoldButtonStyle())
+        }
+        .sheet(isPresented: $showShareSheet) {
+            if let r = vm.result {
+                let card = PaipanSnapshot.huangliCard(result: r)
+                let image = PaipanSnapshot.render(card, size: CGSize(width: 360, height: 400))
+                ShareSheet(items: [image].compactMap { $0 })
+            }
         }
     }
 
@@ -188,9 +208,7 @@ struct HuangliView: View {
     // MARK: - AI
     private var aiSection: some View {
         Group {
-            if vm.aiService.isLoading {
-                LoadingSpinner(text: "择日师正在分析今日运势…")
-            } else if let error = vm.aiService.error {
+            if let error = vm.aiService.error {
                 VStack(spacing: 8) {
                     Text("AI解读失败").foregroundColor(.jiRed)
                     Text(error).font(.system(size: 12)).foregroundColor(.jiRed.opacity(0.7))

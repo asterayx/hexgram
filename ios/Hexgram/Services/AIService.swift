@@ -5,7 +5,7 @@ struct AIConfig: Codable {
     var endpoint: String
 
     static var `default`: AIConfig {
-        AIConfig(endpoint: "")
+        AIConfig(endpoint: "https://yijing-api.asternos.workers.dev")
     }
 
     static func load() -> AIConfig {

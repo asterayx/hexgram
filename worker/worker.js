@@ -24,6 +24,16 @@ export default {
     if (path === "/admin") return serveAdminUI(env);
     if (path.startsWith("/api/admin/")) return handleAdmin(request, env, path, cors);
 
+    // Classics API (D1 cache + LLM)
+    if (path === "/api/classics" && request.method === "POST") {
+      return handleClassics(request, env, cors);
+    }
+
+    // 灵签 API
+    if (path === "/api/lingqian" && request.method === "POST") {
+      return handleLingqian(request, env, cors);
+    }
+
     // AI proxy
     if (request.method !== "POST") {
       return new Response(JSON.stringify({ error: "Method not allowed" }), {
@@ -282,6 +292,46 @@ async function callOpenAICompat(baseUrl, apiKey, model, prompt) {
 // 系统提示词
 // ═══════════════════════════════════════════════════
 
+const PROMPT_LINGQIAN = `你是一位精通道教文化和玄天大帝信仰的签文解读大师，熟读《北帝灵签》《玄天上帝宝训》等典籍，尤擅以签中戏文故事类比信众所求之事。
+
+## 解签核心方法：以戏文照今事
+
+北帝灵签的精髓在于每支签都对应一则历史典故（戏文），解签时必须将戏文故事与信众所问之事进行深度类比，让古人的经历照见今人的处境。
+
+## 解读结构：
+
+### 1. 典故映照（最重要）
+- 先讲清戏文故事的来龙去脉：主人公是谁、遭遇了什么、如何应对、结局如何
+- 然后将故事中主人公的处境与信众当前所问之事逐一对应类比
+- 点明信众现在正处于故事中的哪个阶段——是困顿待变、还是即将破局、还是已在上升
+- 例如：若签名为"宋太祖登基"而信众问事业，则应点明"您当前处境恰如赵匡胤陈桥兵变前夜，时机将至但尚需关键一步"
+
+### 2. 诗签解析
+- 逐句解析"诗曰"的字面义和隐喻义
+- 将诗句中的意象与信众所求之事一一对应
+- "内兆"二字的象征意义及对当前事态的暗示
+
+### 3. 分类详断
+- 结合签文中对应事类的具体断语（家宅/生意/婚姻/功名/占病等）
+- 引用签文原文，逐句解释其对信众具体情况的指向
+
+### 4. 吉凶与时运
+- 根据卦象等级（上上/上/中平/中下/下下）明确判断
+- 戏文主人公的命运转折在几月？对应信众应关注的时间节点
+- 签文中提到的月份/季节，即为应期
+
+### 5. 行动指引
+- 从戏文主人公的成败中提炼出对信众的具体建议
+- 主人公做对了什么？信众应该效仿什么？
+- 主人公犯了什么错？信众应该避免什么？
+
+## 风格要求：
+- 如老道长解签般慈悲亲切，娓娓道来
+- 以讲故事的方式解签，先讲典故再引申到信众之事，让人豁然开朗
+- 每个判断必须有理据——要么引签文原文，要么以戏文类比
+- 吉则鼓励进取，凶则指导化解，不可一味恐吓
+- 不少于800字`;
+
 const PROMPTS = {
   liuyao: `你是一位精通六爻纳甲筮法的资深卦师，深研以下经典并融会贯通：
 
@@ -367,6 +417,7 @@ const PROMPTS = {
 - 语气温和亲切
 - 既有传统底蕴又接地气
 - 回答不少于800字`,
+  lingqian: PROMPT_LINGQIAN,
 };
 
 // ═══════════════════════════════════════════════════
@@ -385,6 +436,8 @@ function buildPrompt(data) {
       userPrompt = `以下是完整的纳甲排盘数据，请进行专业解读：\n\n${data.data}\n\n${question ? `【所问之事】${question}` : "【未指定问题】请综合解读运势。"}\n\n请按以下结构详细解读（不少于1000字）：\n\n## 卦象总论\n## 用神分析\n## 世应分析\n## 动爻与变卦\n## 六神辅断\n## 综合断语`;
     } else if (type === "bazi") {
       userPrompt = `以下是完整的八字排盘数据，请进行专业论命：\n\n${data.data}\n\n${question ? `【用户问题】${question}` : ""}\n\n请按以下结构详细分析（不少于1500字）：\n\n## 格局分析\n## 喜用神\n## 性格分析\n## 大运点评\n## 流年分析\n## 趋吉避凶`;
+    } else if (type === "lingqian") {
+      userPrompt = `以下是用户求得的灵签信息和签文详解，请进行专业解读：\n\n${data.data}\n\n${question ? `【所问之事】${question}` : ""}`;
     } else {
       userPrompt = `以下是今日黄历信息，请给出详细的择日分析和行事指导：\n\n${data.data}\n\n${question ? `【用户问题】${question}` : ""}`;
     }
@@ -424,6 +477,244 @@ function buildPrompt(data) {
   }
 
   throw new Error("Invalid request format");
+}
+
+// ═══════════════════════════════════════════════════
+// 经典文献查询 (D1 缓存 + LLM 生成)
+// ═══════════════════════════════════════════════════
+
+// 事类列表（app下拉框用）
+const QUESTION_CATEGORIES = [
+  { key: "_总论", label: "综合" },
+  { key: "求财", label: "求财" },
+  { key: "事业", label: "事业" },
+  { key: "感情", label: "感情" },
+  { key: "婚姻", label: "婚姻" },
+  { key: "考试", label: "考试" },
+  { key: "家宅", label: "家宅" },
+  { key: "疾病", label: "疾病" },
+  { key: "出行", label: "出行" },
+  { key: "诉讼", label: "诉讼" },
+  { key: "失物", label: "失物" },
+  { key: "天气", label: "天气" },
+  { key: "怀孕", label: "怀孕" },
+  { key: "投资", label: "投资" },
+  { key: "求职", label: "求职" },
+  { key: "生意", label: "生意" },
+];
+
+async function handleClassics(request, env, cors) {
+  const jsonH = { ...cors, "Content-Type": "application/json" };
+
+  try {
+    const body = await request.json();
+    // body: { guaKey, guaName?, changedGuaKey?, changedGuaName?, category? }
+    const { guaKey, changedGuaKey, category } = body;
+
+    if (!guaKey) {
+      return new Response(JSON.stringify({ error: "缺少 guaKey" }), { status: 400, headers: jsonH });
+    }
+
+    // 直接查 D1，不走 LLM（零幻觉）
+    const result = await queryCache(env, guaKey, changedGuaKey, category);
+
+    return new Response(JSON.stringify({
+      gaodao: result.gaodao || null,
+      huangjince: result.huangjince || null,
+      jiaoshi: result.jiaoshi || null,
+      categories: QUESTION_CATEGORIES,
+    }), { headers: jsonH });
+
+  } catch (err) {
+    return new Response(JSON.stringify({ error: err.message }), {
+      status: 500, headers: jsonH
+    });
+  }
+}
+
+// 事类列表单独 GET 也可拿
+// （app 启动时获取类目列表用）
+// 已合并到 /api/classics 响应中
+
+async function queryCache(env, guaKey, changedGuaKey, category) {
+  const result = {};
+
+  // 高岛易断
+  const gd = await env.DB.prepare("SELECT * FROM gaodao WHERE gua_key = ?").bind(guaKey).first();
+  if (gd) {
+    result.gaodao = {
+      name: gd.gua_name,
+      judgment: gd.judgment,
+      yao: [gd.yao_0, gd.yao_1, gd.yao_2, gd.yao_3, gd.yao_4, gd.yao_5],
+    };
+  }
+
+  // 黄金策
+  if (category) {
+    const hj = await env.DB.prepare("SELECT * FROM huangjince WHERE category = ?").bind(category).first();
+    if (hj) {
+      result.huangjince = { category: hj.category, label: hj.label, text: hj.text };
+    }
+  }
+
+  // 焦氏易林
+  if (changedGuaKey) {
+    const js = await env.DB.prepare("SELECT * FROM jiaoshi WHERE ben_key = ? AND bian_key = ?")
+      .bind(guaKey, changedGuaKey).first();
+    if (js) {
+      result.jiaoshi = js.text;
+    }
+  }
+
+  return result;
+}
+
+// storeCache and generateClassics removed — classics are now
+// pre-populated in D1 via seed_gaodao.sql and seed_huangjince.sql.
+// No LLM fallback = zero hallucination risk for classical texts.
+
+// ═══════════════════════════════════════════════════
+// 灵签 API
+// ═══════════════════════════════════════════════════
+
+// 灵签事类
+const LINGQIAN_CATEGORIES = [
+  { key: "综合", label: "综合运势" },
+  { key: "家宅", label: "家宅运势" },
+  { key: "生意", label: "生意经营" },
+  { key: "谋望", label: "谋望求财" },
+  { key: "婚姻", label: "婚姻感情" },
+  { key: "功名", label: "学艺功名" },
+  { key: "出外", label: "出行外出" },
+  { key: "官讼", label: "官讼是非" },
+  { key: "占病", label: "健康疾病" },
+  { key: "失物", label: "失物寻找" },
+  { key: "行人", label: "行人音讯" },
+];
+
+async function handleLingqian(request, env, cors) {
+  const jsonH = { ...cors, "Content-Type": "application/json" };
+
+  try {
+    const body = await request.json();
+    // body: { qianNum, category?, question?, aiRead? }
+    const { qianNum, category, question, aiRead } = body;
+
+    if (!qianNum || qianNum < 1 || qianNum > 51) {
+      return new Response(JSON.stringify({ error: "签号须在1-51之间" }), { status: 400, headers: jsonH });
+    }
+
+    // 查 D1
+    const row = await env.DB.prepare("SELECT * FROM lingqian WHERE qian_num = ?").bind(qianNum).first();
+    if (!row) {
+      return new Response(JSON.stringify({ error: "签文未收录" }), { status: 404, headers: jsonH });
+    }
+
+    // 基本签文信息
+    const qianData = {
+      qianNum: row.qian_num,
+      qianName: row.qian_name,
+      qianType: row.qian_type,
+      guaXiang: row.gua_xiang,
+      shengXiao: row.sheng_xiao,
+      xiWen: row.xi_wen,
+      shiYue: row.shi_yue,
+      neiZhao: row.nei_zhao,
+    };
+
+    // 解析完整 JSON 以获取分类详解
+    let detail = null;
+    if (category && row.full_json) {
+      try {
+        const full = JSON.parse(row.full_json);
+        // 根据类目提取对应详解
+        const catMap = {
+          "家宅": "家宅运势",
+          "生意": "生意",
+          "谋望": "谋望求财",
+          "婚姻": "婚姻",
+          "功名": "学艺功名",
+          "出外": "出外",
+          "官讼": "官讼",
+          "占病": "占病",
+          "失物": "失物",
+          "行人": "行人",
+        };
+        const jsonKey = catMap[category];
+        if (jsonKey && full[jsonKey]) {
+          detail = full[jsonKey];
+        }
+        // 综合则返回主要几项
+        if (category === "综合") {
+          detail = {};
+          if (full["家宅运势"]) detail["家宅"] = full["家宅运势"];
+          if (full["谋望求财"]) detail["谋望"] = full["谋望求财"];
+          if (full["婚姻"]) detail["婚姻"] = full["婚姻"];
+          if (full["占病"]) detail["占病"] = full["占病"];
+        }
+      } catch (e) {}
+    }
+
+    // AI 深度解读
+    let aiReading = null;
+    if (aiRead) {
+      const config = await loadConfig(env);
+      if (config.provider && config.apiKey && config.model) {
+        const full = row.full_json ? JSON.parse(row.full_json) : {};
+        aiReading = await generateLingqianAI(config, qianData, full, category, question);
+      }
+    }
+
+    return new Response(JSON.stringify({
+      qian: qianData,
+      detail: detail,
+      aiReading: aiReading,
+      categories: LINGQIAN_CATEGORIES,
+    }), { headers: jsonH });
+
+  } catch (err) {
+    return new Response(JSON.stringify({ error: err.message }), {
+      status: 500, headers: jsonH
+    });
+  }
+}
+
+async function generateLingqianAI(config, qian, full, category, question) {
+  const catLabel = LINGQIAN_CATEGORIES.find(c => c.key === category)?.label || "综合运势";
+  let userData = `## 签文信息
+第${qian.qianNum}签：${qian.qianName}
+签文类型：${qian.qianType}
+卦象：${qian.guaXiang}
+内兆：${qian.neiZhao}
+
+诗曰：${qian.shiYue}
+
+典故：${qian.xiWen}
+`;
+
+  // 附加分类详解
+  const catMap = {
+    "家宅": "家宅运势", "生意": "生意", "谋望": "谋望求财",
+    "婚姻": "婚姻", "功名": "学艺功名", "出外": "出外",
+    "官讼": "官讼", "占病": "占病", "失物": "失物", "行人": "行人",
+  };
+  const jsonKey = catMap[category];
+  if (jsonKey && full[jsonKey]) {
+    userData += `\n## ${catLabel}签文详解\n`;
+    const sec = full[jsonKey];
+    for (const [k, v] of Object.entries(sec)) {
+      userData += `${k}：${v}\n`;
+    }
+  }
+  if (category === "综合" && full["岁君签"]) {
+    userData += `\n## 岁君签\n总诗：${full["岁君签"]["总诗"] || ""}\n`;
+  }
+
+  userData += `\n## 所求事类：${catLabel}`;
+  if (question) userData += `\n## 用户所问：${question}`;
+
+  const result = await callLLM(config, { system: PROMPT_LINGQIAN, user: userData });
+  return result;
 }
 
 // ═══════════════════════════════════════════════════

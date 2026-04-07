@@ -36,6 +36,16 @@ struct ContentView: View {
                         }
                     }
                     .tag(2)
+
+                LingqianView()
+                    .tabItem {
+                        Label {
+                            Text("灵签")
+                        } icon: {
+                            Image(systemName: "flame")
+                        }
+                    }
+                    .tag(3)
             }
             .tint(.gold)
 

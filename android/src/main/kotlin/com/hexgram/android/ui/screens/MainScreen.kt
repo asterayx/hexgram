@@ -46,6 +46,7 @@ private val tabs = listOf(
     TabItem("六爻", Icons.Default.Star, "六爻纳甲"),
     TabItem("八字", Icons.Default.DateRange, "四柱八字"),
     TabItem("黄历", Icons.Default.DateRange, "黄历查询"),
+    TabItem("灵签", Icons.Default.Star, "北帝灵签"),
 )
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -99,6 +100,7 @@ fun MainScreen() {
                                     0 -> "☰"
                                     1 -> "命"
                                     2 -> "历"
+                                    3 -> "签"
                                     else -> ""
                                 },
                                 fontSize = if (index == 0) 20.sp else 18.sp,
@@ -146,6 +148,7 @@ fun MainScreen() {
                     0 -> LiuyaoScreen()
                     1 -> BaziScreen()
                     2 -> HuangliScreen()
+                    3 -> LingqianScreen()
                 }
             }
         }

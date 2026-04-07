@@ -30,6 +30,12 @@ struct LiuyaoView: View {
                             .id("result")
                     }
 
+                    // 经典文献
+                    if vm.phase == .done {
+                        classicsSection
+                            .id("classics")
+                    }
+
                     // AI解读
                     aiSection
                         .id("ai")
@@ -48,8 +54,8 @@ struct LiuyaoView: View {
                 if let gua = vm.guaResult {
                     let card = PaipanSnapshot.liuyaoCard(guaResult: gua, text: vm.resultText)
                     let image = PaipanSnapshot.render(card, size: CGSize(width: 360, height: 500))
-                    let items: [Any] = [image as Any, vm.resultText]
-                    ShareSheet(items: items.compactMap { $0 is NSNull ? nil : $0 })
+                    let items: [Any] = [image, vm.resultText].compactMap { $0 }
+                    ShareSheet(items: items)
                 }
             }
         }
@@ -62,6 +68,17 @@ struct LiuyaoView: View {
                 .textFieldStyle(HexgramTextFieldStyle())
 
             HStack(spacing: 8) {
+                VStack(alignment: .leading, spacing: 3) {
+                    Text("事类").font(.system(size: 11, design: .serif)).foregroundColor(.textSecondary)
+                    Picker("", selection: $vm.selectedCategoryIndex) {
+                        ForEach(Array(vm.categories.enumerated()), id: \.offset) { index, cat in
+                            Text(cat.label).tag(index)
+                        }
+                    }
+                    .pickerStyle(.menu)
+                    .tint(.gold)
+                }
+
                 VStack(alignment: .leading, spacing: 3) {
                     Text("占卦日期").font(.system(size: 11, design: .serif)).foregroundColor(.textSecondary)
                     DatePicker("", selection: $vm.selectedDate, displayedComponents: .date)
@@ -246,16 +263,22 @@ struct LiuyaoView: View {
             }
 
             HStack(spacing: 10) {
-                Button(action: {
-                    Task { await vm.aiRead() }
-                }) {
-                    HStack(spacing: 4) {
-                        Text("🤖")
-                        Text("AI深度解读")
+                if vm.aiService.isLoading {
+                    ThinkingButton(text: "卦师正在参详卦象…")
+                } else {
+                    Button(action: {
+                        Task { await vm.aiRead() }
+                    }) {
+                        HStack(spacing: 4) {
+                            Text("🤖")
+                            Text("AI深度解读")
+                        }
                     }
+                    .buttonStyle(GoldButtonStyle())
                 }
-                .buttonStyle(GoldButtonStyle())
+            }
 
+            HStack(spacing: 10) {
                 Button(action: { showShareSheet = true }) {
                     HStack(spacing: 4) {
                         Image(systemName: "square.and.arrow.up")
@@ -395,12 +418,25 @@ struct LiuyaoView: View {
         .overlay(RoundedRectangle(cornerRadius: 10).stroke(Color.border, lineWidth: 0.5))
     }
 
+    // MARK: - 经典文献
+    private var classicsSection: some View {
+        Group {
+            if vm.classicsLoading {
+                ThinkingButton(text: "正在查阅经典文献…")
+            } else if !vm.classicsText.isEmpty {
+                VStack(alignment: .leading, spacing: 8) {
+                    Text("经典文献对照").font(.system(size: 15, weight: .medium, design: .serif)).foregroundColor(.goldLight)
+                    MarkdownText(vm.classicsText)
+                }
+                .resultStyle()
+            }
+        }
+    }
+
     // MARK: - AI区域
     private var aiSection: some View {
         Group {
-            if vm.aiService.isLoading {
-                LoadingSpinner(text: "卦师正在参详卦象…")
-            } else if let error = vm.aiService.error {
+            if let error = vm.aiService.error {
                 VStack(spacing: 8) {
                     Text("AI解读失败").font(.system(size: 15, weight: .medium, design: .serif)).foregroundColor(.jiRed)
                     Text(error).font(.system(size: 12, design: .serif)).foregroundColor(.jiRed.opacity(0.7))

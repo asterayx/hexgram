@@ -1,0 +1,155 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "玄武山佛祖灵签",
+  "type": "object",
+  "additionalProperties": true,
+  "properties": {
+    "签号": { "type": "string" },
+    "签名": { "type": "string" },
+    "签文类型": { "type": "string" },
+    "卦象": { "type": "string" },
+    "生肖": { "type": "string" },
+    "签文简介": {
+      "type": "object",
+      "additionalProperties": true,
+      "properties": {
+        "戏文": { "type": "string" },
+        "诗曰": { "type": "string" },
+        "内兆": { "type": "string" }
+      }
+    },
+    "家宅运势": {
+      "type": "object",
+      "additionalProperties": true,
+      "properties": {
+        "签文": { "type": "string" },
+        "解曰": { "type": "string" }
+      }
+    },
+    "岁君签": {
+      "type": "object",
+      "additionalProperties": true,
+      "properties": {
+        "总诗": { "type": "string" },
+        "年龄运势": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": true,
+            "properties": {
+              "年龄": { "type": "string" },
+              "男": { "type": "string" },
+              "女": { "type": "string" }
+            }
+          }
+        }
+      }
+    },
+    "生意": {
+      "type": "object",
+      "additionalProperties": true,
+      "properties": {
+        "生意": { "type": "string" },
+        "生意解曰": { "type": "string" },
+        "开铺": { "type": "string" },
+        "合伙": { "type": "string" },
+        "置货": { "type": "string" }
+      }
+    },
+    "出外": {
+      "type": "object",
+      "additionalProperties": true,
+      "properties": {
+        "出外": { "type": "string" }
+      }
+    },
+    "谋望求财": {
+      "type": "object",
+      "additionalProperties": true,
+      "properties": {
+        "谋望": { "type": "string" },
+        "谋望解曰": { "type": "string" },
+        "求财": { "type": "string" }
+      }
+    },
+    "学艺功名": {
+      "type": "object",
+      "additionalProperties": true,
+      "properties": {
+        "学艺": { "type": "string" },
+        "功名": { "type": "string" }
+      }
+    },
+    "行舟六畜": {
+      "type": "object",
+      "additionalProperties": true,
+      "properties": {
+        "行舟": { "type": "string" },
+        "六畜": { "type": "string" },
+        "猪羊": { "type": "string" },
+        "草龙": { "type": "string" },
+        "三鸟": { "type": "string" },
+        "田蚕": { "type": "string" }
+      }
+    },
+    "移徙": {
+      "type": "object",
+      "additionalProperties": true,
+      "properties": {
+        "移徙": { "type": "string" }
+      }
+    },
+    "行人": {
+      "type": "object",
+      "additionalProperties": true,
+      "properties": {
+        "签文": { "type": "string" },
+        "解曰": { "type": "string" }
+      }
+    },
+    "婚姻": {
+      "type": "object",
+      "additionalProperties": true,
+      "properties": {
+        "签文": { "type": "string" },
+        "解曰": { "type": "string" }
+      }
+    },
+    "官讼": {
+      "type": "object",
+      "additionalProperties": true,
+      "properties": {
+        "签文": { "type": "string" },
+        "解曰": { "type": "string" }
+      }
+    },
+    "失物": {
+      "type": "object",
+      "additionalProperties": true,
+      "properties": {
+        "签文": { "type": "string" },
+        "解曰": { "type": "string" }
+      }
+    },
+    "占病": {
+      "type": "object",
+      "additionalProperties": true,
+      "properties": {
+        "签文": { "type": "string" },
+        "解曰": { "type": "string" }
+      }
+    },
+    "其他": {
+      "type": "object",
+      "additionalProperties": true,
+      "properties": {
+        "灶君": { "type": "string" },
+        "阳基": { "type": "string" },
+        "六甲": { "type": "string" },
+        "子息": { "type": "string" },
+        "祖山": { "type": "string" },
+        "青草": { "type": "string" }
+      }
+    }
+  }
+}
