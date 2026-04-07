@@ -207,10 +207,9 @@ fun LiuyaoScreen(viewModel: LiuyaoViewModel = viewModel()) {
             viewModel.guaResult?.let { guaForShare ->
                 GhostButton("分享卦象", {
                     val widthPx = with(density) { 360.dp.roundToPx() }
-                    val bitmap = ShareService.captureBitmap(context, widthPx) {
+                    ShareService.shareComposable(context, widthPx, "六爻排盘") {
                         LiuyaoShareCard(guaForShare)
                     }
-                    ShareService.shareImage(context, bitmap, "六爻排盘")
                 })
                 Spacer(modifier = Modifier.height(8.dp))
             }

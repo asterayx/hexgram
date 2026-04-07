@@ -7,6 +7,8 @@ import android.graphics.Canvas
 import android.view.View
 import android.view.ViewGroup
 import android.widget.FrameLayout
+import android.widget.Toast
+import androidx.activity.ComponentActivity
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.platform.ComposeView
 import androidx.compose.ui.platform.ViewCompositionStrategy
@@ -45,7 +47,8 @@ object ShareService {
         width: Int,
         content: @Composable () -> Unit
     ): Bitmap {
-        val activity = context as androidx.activity.ComponentActivity
+        val activity = context as? ComponentActivity
+            ?: throw IllegalStateException("Context is not a ComponentActivity")
 
         val composeView = ComposeView(context).apply {
             setViewCompositionStrategy(ViewCompositionStrategy.DisposeOnDetachedFromWindow)
@@ -69,5 +72,19 @@ object ShareService {
         composeView.draw(canvas)
 
         return bitmap
+    }
+
+    fun shareComposable(
+        context: Context,
+        width: Int,
+        title: String,
+        content: @Composable () -> Unit
+    ) {
+        try {
+            val bitmap = captureBitmap(context, width, content)
+            shareImage(context, bitmap, title)
+        } catch (e: Exception) {
+            Toast.makeText(context, "分享失败: ${e.message}", Toast.LENGTH_SHORT).show()
+        }
     }
 }

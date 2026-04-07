@@ -54,8 +54,8 @@ struct LiuyaoView: View {
                 if let gua = vm.guaResult {
                     let card = PaipanSnapshot.liuyaoCard(guaResult: gua, text: vm.resultText)
                     let image = PaipanSnapshot.render(card, size: CGSize(width: 360, height: 500))
-                    let items: [Any] = [image as Any, vm.resultText]
-                    ShareSheet(items: items.compactMap { $0 is NSNull ? nil : $0 })
+                    let items: [Any] = [image, vm.resultText].compactMap { $0 }
+                    ShareSheet(items: items)
                 }
             }
         }

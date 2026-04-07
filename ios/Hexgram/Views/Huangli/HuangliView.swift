@@ -79,7 +79,7 @@ struct HuangliView: View {
             if let r = vm.result {
                 let card = PaipanSnapshot.huangliCard(result: r)
                 let image = PaipanSnapshot.render(card, size: CGSize(width: 360, height: 400))
-                ShareSheet(items: [image as Any].compactMap { $0 is NSNull ? nil : $0 })
+                ShareSheet(items: [image].compactMap { $0 })
             }
         }
     }

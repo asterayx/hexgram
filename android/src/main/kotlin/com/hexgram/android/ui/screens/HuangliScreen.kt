@@ -436,10 +436,9 @@ fun HuangliScreen(
                 text = "分享黄历",
                 onClick = {
                     val widthPx = with(density) { 360.dp.roundToPx() }
-                    val bitmap = ShareService.captureBitmap(context, widthPx) {
+                    ShareService.shareComposable(context, widthPx, "每日黄历") {
                         HuangliShareCard(r)
                     }
-                    ShareService.shareImage(context, bitmap, "每日黄历")
                 }
             )
         }

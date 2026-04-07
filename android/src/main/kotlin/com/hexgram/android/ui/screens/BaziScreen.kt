@@ -578,10 +578,9 @@ fun BaziScreen(
                 text = "分享命盘",
                 onClick = {
                     val widthPx = with(density) { 360.dp.roundToPx() }
-                    val bitmap = ShareService.captureBitmap(context, widthPx) {
+                    ShareService.shareComposable(context, widthPx, "八字命盘") {
                         BaziShareCard(r)
                     }
-                    ShareService.shareImage(context, bitmap, "八字命盘")
                 }
             )
         }

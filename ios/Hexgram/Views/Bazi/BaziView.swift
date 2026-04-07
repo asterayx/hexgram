@@ -143,8 +143,8 @@ struct BaziView: View {
             if let r = vm.result {
                 let card = PaipanSnapshot.baziCard(result: r)
                 let image = PaipanSnapshot.render(card, size: CGSize(width: 360, height: 350))
-                let items: [Any] = [image as Any, vm.resultText]
-                ShareSheet(items: items.compactMap { $0 is NSNull ? nil : $0 })
+                let items: [Any] = [image, vm.resultText].compactMap { $0 }
+                ShareSheet(items: items)
             }
         }
     }
