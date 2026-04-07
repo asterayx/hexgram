@@ -33,6 +33,9 @@ function getLiuqin(gongWx, yaoWx) {
 // 八宫八卦与纳甲
 // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
+// 经卦象名：用于构造全卦名（如"泽火革"）
+const GUA_XIANG = {"乾":"天","坤":"地","坎":"水","离":"火","震":"雷","巽":"风","艮":"山","兑":"泽"};
+
 // 八纯卦（经卦）二进制：从初爻到上爻
 const BAGUA = {
   "111": {name:"乾", wx:"金", najia_yang:"甲", najia_yin:"壬"},
@@ -426,15 +429,25 @@ function zhuangGua(lines, options = {}) {
     "000111":"否","000110":"萃","000101":"晋","000100":"豫","000011":"观","000010":"比","000001":"剥","000000":"坤"
   };
 
+  // 构造全卦名：八纯卦用"X为Y"（如"乾为天"），其余用"外象内象名"（如"泽火革"）
+  function fullGuaName(key) {
+    const short = HEXAGRAM_TABLE[key] || "未知";
+    const ik = key.slice(0, 3), ok = key.slice(3, 6);
+    const ig = BAGUA[ik], og = BAGUA[ok];
+    if (!ig || !og) return short;
+    if (ik === ok) return `${ig.name}为${GUA_XIANG[ig.name] || ""}`;
+    return `${GUA_XIANG[og.name] || ""}${GUA_XIANG[ig.name] || ""}${short}`;
+  }
+
   return {
     // 基本信息
-    guaName: HEXAGRAM_TABLE[baseKey] || "未知",
+    guaName: fullGuaName(baseKey),
     guaKey: baseKey,
     innerGua: innerGua?.name,
     outerGua: outerGua?.name,
     innerWx: innerGua?.wx,
     outerWx: outerGua?.wx,
-    
+
     // 八宫归属
     gong: gongInfo.gong,
     gongWx: gongWx,
@@ -448,7 +461,7 @@ function zhuangGua(lines, options = {}) {
     // 变卦
     hasChanging: changingIdx.length > 0,
     changingIdx: changingIdx,
-    changedGuaName: changingIdx.length > 0 ? (HEXAGRAM_TABLE[changedKey] || "未知") : null,
+    changedGuaName: changingIdx.length > 0 ? fullGuaName(changedKey) : null,
     changedGuaKey: changingIdx.length > 0 ? changedKey : null,
     changedYaos: changedYaos,
     dongBianAnalysis: dongBianAnalysis,

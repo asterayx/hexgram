@@ -126,7 +126,7 @@ class LingqianViewModel(application: Application) : AndroidViewModel(application
 
                     val code = conn.responseCode
                     if (code in 200..299) {
-                        conn.inputStream.bufferedReader().use { it.readText() }
+                        conn.inputStream.bufferedReader(Charsets.UTF_8).use { it.readText() }
                     } else {
                         throw Exception("服务器错误 ($code)")
                     }

@@ -376,7 +376,7 @@ class BaziEngine {
         t += "藏干：\(result.pillars.map { "\($0.zhi)(\($0.cangGan.map { $0.gan }.joined(separator: ",")))" }.joined(separator: " "))\n"
         t += "日主\(result.riGan)（\(result.riGanWuxing)），\(result.isStrong ? "身旺" : "身弱")\n"
         t += "五行：\(GanZhi.wuxingAll.map { "\($0):\(String(format: "%.1f", result.wuxingCounts[$0] ?? 0))" }.joined(separator: " "))\n"
-        t += "大运（\(result.isShunPai ? "顺" : "逆")排）：\(result.daYun.map { "\($0.gan)\($0.zhi)(\($0.year))" }.joined(separator: " "))\n"
+        t += "大运（\(result.isShunPai ? "顺" : "逆")排）：\(result.daYun.map { "\($0.gan)\($0.zhi)(\($0.age)-\($0.age + 9)岁,\($0.year)-\($0.year + 9)年)" }.joined(separator: " "))\n"
         let curDy = result.daYun.first(where: { result.currentYear >= $0.year && result.currentYear < $0.year + 10 })
         if let dy = curDy {
             t += "当前大运：\(dy.gan)\(dy.zhi)\n"

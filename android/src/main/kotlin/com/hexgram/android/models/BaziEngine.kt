@@ -399,7 +399,7 @@ object BaziEngine {
         }
         sb.append("五行：${wxStr}\n")
 
-        sb.append("大运（${if (result.isShunPai) "顺" else "逆"}排）：${result.daYun.joinToString(" ") { "${it.gan}${it.zhi}(${it.year})" }}\n")
+        sb.append("大运（${if (result.isShunPai) "顺" else "逆"}排）：${result.daYun.joinToString(" ") { "${it.gan}${it.zhi}(${it.age}-${it.age + 9}岁,${it.year}-${it.year + 9}年)" }}\n")
         val curDy = result.daYun.firstOrNull { result.currentYear >= it.year && result.currentYear < it.year + 10 }
         if (curDy != null) {
             sb.append("当前大运：${curDy.gan}${curDy.zhi}\n")
