@@ -38,7 +38,7 @@ import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.hexgram.android.ui.components.GhostButton
 import com.hexgram.android.ui.components.InfoRow
-import com.hexgram.android.ui.components.LoadingSpinner
+import com.hexgram.android.ui.components.ThinkingButton
 import com.hexgram.android.ui.components.MarkdownText
 import com.hexgram.android.ui.components.PanelCard
 import com.hexgram.android.ui.components.ResultCard
@@ -403,7 +403,7 @@ fun HuangliScreen(
             Spacer(modifier = Modifier.height(16.dp))
 
             if (viewModel.aiLoading) {
-                LoadingSpinner("AI解读中...")
+                ThinkingButton("择日师正在分析运势…")
             } else if (viewModel.aiText.isNotBlank()) {
                 ResultCard {
                     Column {

@@ -39,6 +39,7 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import com.hexgram.android.ui.components.GhostButton
 import com.hexgram.android.ui.components.GoldButton
 import com.hexgram.android.ui.components.LoadingSpinner
+import com.hexgram.android.ui.components.ThinkingButton
 import com.hexgram.android.ui.components.MarkdownText
 import com.hexgram.android.ui.components.PanelCard
 import com.hexgram.android.ui.components.ResultCard
@@ -171,19 +172,13 @@ fun LiuyaoScreen(viewModel: LiuyaoViewModel = viewModel()) {
             }
 
             Spacer(modifier = Modifier.height(12.dp))
-            GoldButton(
-                text = if (viewModel.aiLoading) "解读中，请稍候…" else "🤖 AI深度解读",
-                onClick = { viewModel.requestAI() },
-                enabled = !viewModel.aiLoading
-            )
+            if (viewModel.aiLoading) {
+                ThinkingButton("卦师正在参详卦象…")
+            } else {
+                GoldButton("🤖 AI深度解读", { viewModel.requestAI() })
+            }
             Spacer(modifier = Modifier.height(8.dp))
             GhostButton("再占一卦", { viewModel.reset() })
-        }
-
-        // AI loading
-        if (viewModel.aiLoading) {
-            Spacer(modifier = Modifier.height(16.dp))
-            LoadingSpinner("卦师正在参详卦象…")
         }
 
         // AI result
