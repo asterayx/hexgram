@@ -29,6 +29,11 @@ export default {
       return handleClassics(request, env, cors);
     }
 
+    // 灵签 API
+    if (path === "/api/lingqian" && request.method === "POST") {
+      return handleLingqian(request, env, cors);
+    }
+
     // AI proxy
     if (request.method !== "POST") {
       return new Response(JSON.stringify({ error: "Method not allowed" }), {
@@ -287,6 +292,23 @@ async function callOpenAICompat(baseUrl, apiKey, model, prompt) {
 // 系统提示词
 // ═══════════════════════════════════════════════════
 
+const PROMPT_LINGQIAN = `你是一位精通道教文化和玄天大帝信仰的签文解读大师，熟读《北帝灵签》《玄天上帝宝训》等典籍。
+
+请根据用户求得的灵签，提供专业而温暖的解读：
+
+## 解读要求：
+1. **签文总论**：解释签名典故、诗曰含义、内兆寓意
+2. **所求之事**：针对用户具体所问的事类，结合签文中的对应内容详细分析
+3. **吉凶判断**：根据卦象（上上/上/中平/中下/下下）明确告知吉凶趋势
+4. **行动建议**：给出具体可操作的趋吉避凶建议
+5. **应期提示**：根据签文中的月份提示，提醒应验时间
+
+## 风格要求：
+- 如老道长为信众解签般慈悲亲切，不故弄玄虚
+- 每个判断要交代理据（引用签文原文）
+- 吉则鼓励进取，凶则指导化解，不可一味恐吓
+- 不少于600字`;
+
 const PROMPTS = {
   liuyao: `你是一位精通六爻纳甲筮法的资深卦师，深研以下经典并融会贯通：
 
@@ -372,6 +394,7 @@ const PROMPTS = {
 - 语气温和亲切
 - 既有传统底蕴又接地气
 - 回答不少于800字`,
+  lingqian: PROMPT_LINGQIAN,
 };
 
 // ═══════════════════════════════════════════════════
@@ -390,6 +413,8 @@ function buildPrompt(data) {
       userPrompt = `以下是完整的纳甲排盘数据，请进行专业解读：\n\n${data.data}\n\n${question ? `【所问之事】${question}` : "【未指定问题】请综合解读运势。"}\n\n请按以下结构详细解读（不少于1000字）：\n\n## 卦象总论\n## 用神分析\n## 世应分析\n## 动爻与变卦\n## 六神辅断\n## 综合断语`;
     } else if (type === "bazi") {
       userPrompt = `以下是完整的八字排盘数据，请进行专业论命：\n\n${data.data}\n\n${question ? `【用户问题】${question}` : ""}\n\n请按以下结构详细分析（不少于1500字）：\n\n## 格局分析\n## 喜用神\n## 性格分析\n## 大运点评\n## 流年分析\n## 趋吉避凶`;
+    } else if (type === "lingqian") {
+      userPrompt = `以下是用户求得的灵签信息和签文详解，请进行专业解读：\n\n${data.data}\n\n${question ? `【所问之事】${question}` : ""}`;
     } else {
       userPrompt = `以下是今日黄历信息，请给出详细的择日分析和行事指导：\n\n${data.data}\n\n${question ? `【用户问题】${question}` : ""}`;
     }
@@ -524,6 +549,150 @@ async function queryCache(env, guaKey, changedGuaKey, category) {
 // storeCache and generateClassics removed — classics are now
 // pre-populated in D1 via seed_gaodao.sql and seed_huangjince.sql.
 // No LLM fallback = zero hallucination risk for classical texts.
+
+// ═══════════════════════════════════════════════════
+// 灵签 API
+// ═══════════════════════════════════════════════════
+
+// 灵签事类
+const LINGQIAN_CATEGORIES = [
+  { key: "综合", label: "综合运势" },
+  { key: "家宅", label: "家宅运势" },
+  { key: "生意", label: "生意经营" },
+  { key: "谋望", label: "谋望求财" },
+  { key: "婚姻", label: "婚姻感情" },
+  { key: "功名", label: "学艺功名" },
+  { key: "出外", label: "出行外出" },
+  { key: "官讼", label: "官讼是非" },
+  { key: "占病", label: "健康疾病" },
+  { key: "失物", label: "失物寻找" },
+  { key: "行人", label: "行人音讯" },
+];
+
+async function handleLingqian(request, env, cors) {
+  const jsonH = { ...cors, "Content-Type": "application/json" };
+
+  try {
+    const body = await request.json();
+    // body: { qianNum, category?, question?, aiRead? }
+    const { qianNum, category, question, aiRead } = body;
+
+    if (!qianNum || qianNum < 1 || qianNum > 51) {
+      return new Response(JSON.stringify({ error: "签号须在1-51之间" }), { status: 400, headers: jsonH });
+    }
+
+    // 查 D1
+    const row = await env.DB.prepare("SELECT * FROM lingqian WHERE qian_num = ?").bind(qianNum).first();
+    if (!row) {
+      return new Response(JSON.stringify({ error: "签文未收录" }), { status: 404, headers: jsonH });
+    }
+
+    // 基本签文信息
+    const qianData = {
+      qianNum: row.qian_num,
+      qianName: row.qian_name,
+      qianType: row.qian_type,
+      guaXiang: row.gua_xiang,
+      shengXiao: row.sheng_xiao,
+      xiWen: row.xi_wen,
+      shiYue: row.shi_yue,
+      neiZhao: row.nei_zhao,
+    };
+
+    // 解析完整 JSON 以获取分类详解
+    let detail = null;
+    if (category && row.full_json) {
+      try {
+        const full = JSON.parse(row.full_json);
+        // 根据类目提取对应详解
+        const catMap = {
+          "家宅": "家宅运势",
+          "生意": "生意",
+          "谋望": "谋望求财",
+          "婚姻": "婚姻",
+          "功名": "学艺功名",
+          "出外": "出外",
+          "官讼": "官讼",
+          "占病": "占病",
+          "失物": "失物",
+          "行人": "行人",
+        };
+        const jsonKey = catMap[category];
+        if (jsonKey && full[jsonKey]) {
+          detail = full[jsonKey];
+        }
+        // 综合则返回主要几项
+        if (category === "综合") {
+          detail = {};
+          if (full["家宅运势"]) detail["家宅"] = full["家宅运势"];
+          if (full["谋望求财"]) detail["谋望"] = full["谋望求财"];
+          if (full["婚姻"]) detail["婚姻"] = full["婚姻"];
+          if (full["占病"]) detail["占病"] = full["占病"];
+        }
+      } catch (e) {}
+    }
+
+    // AI 深度解读
+    let aiReading = null;
+    if (aiRead) {
+      const config = await loadConfig(env);
+      if (config.provider && config.apiKey && config.model) {
+        const full = row.full_json ? JSON.parse(row.full_json) : {};
+        aiReading = await generateLingqianAI(config, qianData, full, category, question);
+      }
+    }
+
+    return new Response(JSON.stringify({
+      qian: qianData,
+      detail: detail,
+      aiReading: aiReading,
+      categories: LINGQIAN_CATEGORIES,
+    }), { headers: jsonH });
+
+  } catch (err) {
+    return new Response(JSON.stringify({ error: err.message }), {
+      status: 500, headers: jsonH
+    });
+  }
+}
+
+async function generateLingqianAI(config, qian, full, category, question) {
+  const catLabel = LINGQIAN_CATEGORIES.find(c => c.key === category)?.label || "综合运势";
+  let userData = `## 签文信息
+第${qian.qianNum}签：${qian.qianName}
+签文类型：${qian.qianType}
+卦象：${qian.guaXiang}
+内兆：${qian.neiZhao}
+
+诗曰：${qian.shiYue}
+
+典故：${qian.xiWen}
+`;
+
+  // 附加分类详解
+  const catMap = {
+    "家宅": "家宅运势", "生意": "生意", "谋望": "谋望求财",
+    "婚姻": "婚姻", "功名": "学艺功名", "出外": "出外",
+    "官讼": "官讼", "占病": "占病", "失物": "失物", "行人": "行人",
+  };
+  const jsonKey = catMap[category];
+  if (jsonKey && full[jsonKey]) {
+    userData += `\n## ${catLabel}签文详解\n`;
+    const sec = full[jsonKey];
+    for (const [k, v] of Object.entries(sec)) {
+      userData += `${k}：${v}\n`;
+    }
+  }
+  if (category === "综合" && full["岁君签"]) {
+    userData += `\n## 岁君签\n总诗：${full["岁君签"]["总诗"] || ""}\n`;
+  }
+
+  userData += `\n## 所求事类：${catLabel}`;
+  if (question) userData += `\n## 用户所问：${question}`;
+
+  const result = await callLLM(config, { system: PROMPT_LINGQIAN, user: userData });
+  return result;
+}
 
 // ═══════════════════════════════════════════════════
 // Admin WebUI
