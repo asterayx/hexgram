@@ -268,9 +268,16 @@ private fun GuaResultView(gua: GuaResult) {
 
 @Composable
 fun NumberPickerField(label: String, value: Int, onValueChange: (Int) -> Unit, range: IntRange, modifier: Modifier = Modifier) {
+    var textState by remember(value) { mutableStateOf(value.toString()) }
     OutlinedTextField(
-        value = value.toString(),
-        onValueChange = { text -> text.filter { it.isDigit() }.toIntOrNull()?.let { if (it in range) onValueChange(it) } },
+        value = textState,
+        onValueChange = { text ->
+            val digits = text.filter { it.isDigit() }
+            if (digits.length <= range.last.toString().length) {
+                textState = digits
+                digits.toIntOrNull()?.let { if (it in range) onValueChange(it) }
+            }
+        },
         label = { Text(label, fontSize = 12.sp, fontFamily = SerifFont, color = HexgramColors.textTertiary) },
         modifier = modifier,
         colors = OutlinedTextFieldDefaults.colors(
