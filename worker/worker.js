@@ -541,8 +541,10 @@ async function handleClassics(request, env, cors) {
 async function queryCache(env, guaKey, changedGuaKey, category) {
   const result = {};
 
-  // 高岛易断
-  const gd = await env.DB.prepare("SELECT * FROM gaodao WHERE gua_key = ?").bind(guaKey).first();
+  // 高岛易断 — gaodao keys use top-to-bottom bit order (上爻→初爻),
+  // but the engine uses bottom-to-top (初爻→上爻), so reverse the key
+  const gaodaoKey = guaKey.split("").reverse().join("");
+  const gd = await env.DB.prepare("SELECT * FROM gaodao WHERE gua_key = ?").bind(gaodaoKey).first();
   if (gd) {
     result.gaodao = {
       name: gd.gua_name,
