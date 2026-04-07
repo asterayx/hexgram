@@ -19,7 +19,7 @@ object AIService {
 
     fun getEndpoint(context: Context): String {
         val prefs = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
-        return prefs.getString(KEY_ENDPOINT, "") ?: ""
+        return prefs.getString(KEY_ENDPOINT, "https://yijing-api.asternos.workers.dev") ?: "https://yijing-api.asternos.workers.dev"
     }
 
     /**

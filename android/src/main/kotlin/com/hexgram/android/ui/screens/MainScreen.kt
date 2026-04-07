@@ -100,6 +100,7 @@ fun MainScreen() {
                                     0 -> "☰"
                                     1 -> "命"
                                     2 -> "历"
+                                    3 -> "签"
                                     else -> ""
                                 },
                                 fontSize = if (index == 0) 20.sp else 18.sp,
