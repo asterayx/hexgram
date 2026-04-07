@@ -246,16 +246,22 @@ struct LiuyaoView: View {
             }
 
             HStack(spacing: 10) {
-                Button(action: {
-                    Task { await vm.aiRead() }
-                }) {
-                    HStack(spacing: 4) {
-                        Text("🤖")
-                        Text("AI深度解读")
+                if vm.aiService.isLoading {
+                    ThinkingButton(text: "卦师正在参详卦象…")
+                } else {
+                    Button(action: {
+                        Task { await vm.aiRead() }
+                    }) {
+                        HStack(spacing: 4) {
+                            Text("🤖")
+                            Text("AI深度解读")
+                        }
                     }
+                    .buttonStyle(GoldButtonStyle())
                 }
-                .buttonStyle(GoldButtonStyle())
+            }
 
+            HStack(spacing: 10) {
                 Button(action: { showShareSheet = true }) {
                     HStack(spacing: 4) {
                         Image(systemName: "square.and.arrow.up")
@@ -398,9 +404,7 @@ struct LiuyaoView: View {
     // MARK: - AI区域
     private var aiSection: some View {
         Group {
-            if vm.aiService.isLoading {
-                LoadingSpinner(text: "卦师正在参详卦象…")
-            } else if let error = vm.aiService.error {
+            if let error = vm.aiService.error {
                 VStack(spacing: 8) {
                     Text("AI解读失败").font(.system(size: 15, weight: .medium, design: .serif)).foregroundColor(.jiRed)
                     Text(error).font(.system(size: 12, design: .serif)).foregroundColor(.jiRed.opacity(0.7))

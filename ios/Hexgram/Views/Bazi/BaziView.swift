@@ -116,22 +116,26 @@ struct BaziView: View {
             liuNianSection(r)
 
             // 按钮
-            HStack(spacing: 10) {
-                Button(action: { Task { await vm.aiRead() } }) {
-                    HStack(spacing: 4) {
-                        Text("🤖")
-                        Text("AI深度解读")
+            if vm.aiService.isLoading {
+                ThinkingButton(text: "命理师正在推演命盘…")
+            } else {
+                HStack(spacing: 10) {
+                    Button(action: { Task { await vm.aiRead() } }) {
+                        HStack(spacing: 4) {
+                            Text("🤖")
+                            Text("AI深度解读")
+                        }
                     }
-                }
-                .buttonStyle(GoldButtonStyle())
+                    .buttonStyle(GoldButtonStyle())
 
-                Button(action: { showShareSheet = true }) {
-                    HStack(spacing: 4) {
-                        Image(systemName: "square.and.arrow.up")
-                        Text("分享")
+                    Button(action: { showShareSheet = true }) {
+                        HStack(spacing: 4) {
+                            Image(systemName: "square.and.arrow.up")
+                            Text("分享")
+                        }
                     }
+                    .buttonStyle(GhostButtonStyle())
                 }
-                .buttonStyle(GhostButtonStyle())
             }
         }
         .resultStyle()
@@ -416,9 +420,7 @@ struct BaziView: View {
     // MARK: - AI
     private var aiSection: some View {
         Group {
-            if vm.aiService.isLoading {
-                LoadingSpinner(text: "命理师正在推演命盘…")
-            } else if let error = vm.aiService.error {
+            if let error = vm.aiService.error {
                 VStack(spacing: 8) {
                     Text("AI解读失败").font(.system(size: 15, weight: .medium, design: .serif)).foregroundColor(.jiRed)
                     Text(error).font(.system(size: 12)).foregroundColor(.jiRed.opacity(0.7))

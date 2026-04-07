@@ -54,13 +54,17 @@ struct HuangliView: View {
             detailInfo(r)
 
             // AI按钮
-            Button(action: { Task { await vm.aiRead() } }) {
-                HStack(spacing: 4) {
-                    Text("🤖")
-                    Text("AI深度解读")
+            if vm.aiService.isLoading {
+                ThinkingButton(text: "择日师正在分析运势…")
+            } else {
+                Button(action: { Task { await vm.aiRead() } }) {
+                    HStack(spacing: 4) {
+                        Text("🤖")
+                        Text("AI深度解读")
+                    }
                 }
+                .buttonStyle(GoldButtonStyle())
             }
-            .buttonStyle(GoldButtonStyle())
         }
     }
 
@@ -188,9 +192,7 @@ struct HuangliView: View {
     // MARK: - AI
     private var aiSection: some View {
         Group {
-            if vm.aiService.isLoading {
-                LoadingSpinner(text: "择日师正在分析今日运势…")
-            } else if let error = vm.aiService.error {
+            if let error = vm.aiService.error {
                 VStack(spacing: 8) {
                     Text("AI解读失败").foregroundColor(.jiRed)
                     Text(error).font(.system(size: 12)).foregroundColor(.jiRed.opacity(0.7))

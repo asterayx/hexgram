@@ -169,6 +169,32 @@ struct LoadingSpinner: View {
     }
 }
 
+// MARK: - Thinking Button (AI loading state)
+struct ThinkingButton: View {
+    let text: String
+
+    var body: some View {
+        VStack(spacing: 6) {
+            Text(text)
+                .font(.system(size: 14, weight: .medium, design: .serif))
+                .foregroundColor(.gold)
+            ProgressView()
+                .progressViewStyle(LinearProgressViewStyle(tint: .gold))
+                .frame(width: 200)
+        }
+        .frame(maxWidth: .infinity)
+        .padding(.vertical, 14)
+        .background(Color.gold.opacity(0.1))
+        .clipShape(RoundedRectangle(cornerRadius: 10))
+        .overlay(
+            RoundedRectangle(cornerRadius: 10)
+                .stroke(Color.gold.opacity(0.3), lineWidth: 1)
+        )
+        .onAppear { UIApplication.shared.isIdleTimerDisabled = true }
+        .onDisappear { UIApplication.shared.isIdleTimerDisabled = false }
+    }
+}
+
 // MARK: - Flow Layout (for tags)
 struct FlowLayout: Layout {
     var spacing: CGFloat = 6
