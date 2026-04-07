@@ -1,5 +1,7 @@
 package com.hexgram.android.ui.components
 
+import androidx.compose.runtime.DisposableEffect
+import androidx.compose.ui.platform.LocalView
 import androidx.compose.animation.core.LinearEasing
 import androidx.compose.animation.core.RepeatMode
 import androidx.compose.animation.core.animateFloat
@@ -206,6 +208,13 @@ fun LoadingSpinner(
     text: String = "加载中...",
     modifier: Modifier = Modifier
 ) {
+    // Keep screen on while loading
+    val view = LocalView.current
+    DisposableEffect(Unit) {
+        view.keepScreenOn = true
+        onDispose { view.keepScreenOn = false }
+    }
+
     Column(
         modifier = modifier
             .fillMaxWidth()
