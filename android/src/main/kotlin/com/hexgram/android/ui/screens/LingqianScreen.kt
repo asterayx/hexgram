@@ -128,12 +128,12 @@ private fun InputSection(vm: LingqianViewModel) {
                         val selected = vm.selectedGender == idx
                         Text(
                             text = label,
-                            color = if (selected) HexgramColors.bg else HexgramColors.gold,
+                            color = if (selected) HexgramColors.bgPrimary else HexgramColors.gold,
                             fontSize = 14.sp,
                             textAlign = TextAlign.Center,
                             modifier = Modifier
                                 .clip(RoundedCornerShape(if (idx == 0) 6.dp else 0.dp, if (idx == 1) 6.dp else 0.dp, if (idx == 1) 6.dp else 0.dp, if (idx == 0) 6.dp else 0.dp))
-                                .background(if (selected) HexgramColors.gold else HexgramColors.bgPanel)
+                                .background(if (selected) HexgramColors.gold else HexgramColors.bgPrimaryPanel)
                                 .border(1.dp, HexgramColors.gold, RoundedCornerShape(if (idx == 0) 6.dp else 0.dp, if (idx == 1) 6.dp else 0.dp, if (idx == 1) 6.dp else 0.dp, if (idx == 0) 6.dp else 0.dp))
                                 .clickable { vm.selectedGender = idx }
                                 .padding(horizontal = 12.dp, vertical = 8.dp)
@@ -177,14 +177,14 @@ private fun LingqianCategoryDropdown(selectedIndex: Int, onSelect: (Int) -> Unit
                 fontSize = 14.sp,
                 modifier = Modifier
                     .clip(RoundedCornerShape(6.dp))
-                    .background(HexgramColors.bgPanel)
+                    .background(HexgramColors.bgPrimaryPanel)
                     .clickable { expanded = true }
                     .padding(horizontal = 12.dp, vertical = 8.dp)
             )
             DropdownMenu(
                 expanded = expanded,
                 onDismissRequest = { expanded = false },
-                modifier = Modifier.background(HexgramColors.bgPanel)
+                modifier = Modifier.background(HexgramColors.bgPrimaryPanel)
             ) {
                 LINGQIAN_CATEGORIES.forEachIndexed { index, cat ->
                     DropdownMenuItem(
@@ -333,7 +333,7 @@ private fun LingqianShareCard(vm: LingqianViewModel) {
     Column(
         modifier = Modifier
             .fillMaxWidth()
-            .background(HexgramColors.bg)
+            .background(HexgramColors.bgPrimary)
             .padding(16.dp)
     ) {
         Text(
