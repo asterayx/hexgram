@@ -23,6 +23,8 @@ import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.OutlinedTextFieldDefaults
+import androidx.compose.material3.Switch
+import androidx.compose.material3.SwitchDefaults
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
@@ -104,7 +106,32 @@ fun BaziScreen(
                     )
                 )
 
-                Spacer(modifier = Modifier.height(12.dp))
+                Spacer(modifier = Modifier.height(8.dp))
+
+                // 阴历开关
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    Text(
+                        text = "阴历（农历）",
+                        fontSize = 12.sp,
+                        fontFamily = SerifFont,
+                        color = HexgramColors.textSecondary
+                    )
+                    Switch(
+                        checked = viewModel.isLunar,
+                        onCheckedChange = { viewModel.isLunar = it },
+                        colors = SwitchDefaults.colors(
+                            checkedThumbColor = HexgramColors.bgPrimary,
+                            checkedTrackColor = HexgramColors.gold,
+                            uncheckedThumbColor = HexgramColors.textSecondary,
+                            uncheckedTrackColor = HexgramColors.bgPanel,
+                        )
+                    )
+                }
+
+                Spacer(modifier = Modifier.height(4.dp))
 
                 // Date pickers
                 Row(
@@ -112,24 +139,24 @@ fun BaziScreen(
                     horizontalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
                     NumberPickerField(
-                        label = "年",
+                        label = if (viewModel.isLunar) "农历年" else "年",
                         value = viewModel.selectedYear,
                         onValueChange = { viewModel.selectedYear = it },
                         range = 1900..2100,
                         modifier = Modifier.weight(1f)
                     )
                     NumberPickerField(
-                        label = "月",
+                        label = if (viewModel.isLunar) "农历月" else "月",
                         value = viewModel.selectedMonth,
                         onValueChange = { viewModel.selectedMonth = it },
                         range = 1..12,
                         modifier = Modifier.weight(1f)
                     )
                     NumberPickerField(
-                        label = "日",
+                        label = if (viewModel.isLunar) "农历日" else "日",
                         value = viewModel.selectedDay,
                         onValueChange = { viewModel.selectedDay = it },
-                        range = 1..31,
+                        range = 1..(if (viewModel.isLunar) viewModel.lunarMaxDay else 31),
                         modifier = Modifier.weight(1f)
                     )
                 }
@@ -190,6 +217,15 @@ fun BaziScreen(
                     fontWeight = FontWeight.Bold,
                     color = HexgramColors.goldLight,
                     modifier = Modifier.padding(bottom = 4.dp)
+                )
+            }
+
+            if (viewModel.lunarDisplayString.isNotEmpty()) {
+                Text(
+                    text = viewModel.lunarDisplayString,
+                    fontSize = 13.sp,
+                    fontFamily = SerifFont,
+                    color = HexgramColors.gold
                 )
             }
 

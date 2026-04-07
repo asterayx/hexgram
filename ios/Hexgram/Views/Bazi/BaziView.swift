@@ -28,15 +28,64 @@ struct BaziView: View {
     // MARK: - 输入面板
     private var inputPanel: some View {
         VStack(spacing: 10) {
-            HStack(spacing: 8) {
-                VStack(alignment: .leading, spacing: 3) {
-                    Text("出生日期").font(.system(size: 11, design: .serif)).foregroundColor(.textSecondary)
-                    DatePicker("", selection: $vm.selectedDate, in: ...Date(), displayedComponents: .date)
-                        .datePickerStyle(.compact)
-                        .labelsHidden()
-                        .tint(.gold)
+            // 阴历开关
+            HStack {
+                Toggle(isOn: $vm.isLunar) {
+                    Text("阴历（农历）").font(.system(size: 12, design: .serif)).foregroundColor(.textSecondary)
                 }
+                .toggleStyle(SwitchToggleStyle(tint: .gold))
+                Spacer()
+            }
 
+            if vm.isLunar {
+                // 阴历年月日选择
+                HStack(spacing: 6) {
+                    VStack(alignment: .leading, spacing: 3) {
+                        Text("农历年").font(.system(size: 11, design: .serif)).foregroundColor(.textSecondary)
+                        Picker("", selection: $vm.lunarYear) {
+                            ForEach(1900...2100, id: \.self) { y in
+                                Text("\(y)").tag(y)
+                            }
+                        }
+                        .pickerStyle(.menu)
+                        .tint(.gold)
+                    }
+                    VStack(alignment: .leading, spacing: 3) {
+                        Text("月").font(.system(size: 11, design: .serif)).foregroundColor(.textSecondary)
+                        Picker("", selection: $vm.lunarMonth) {
+                            ForEach(1...12, id: \.self) { m in
+                                Text(lunarMonthName(m)).tag(m)
+                            }
+                        }
+                        .pickerStyle(.menu)
+                        .tint(.gold)
+                    }
+                    VStack(alignment: .leading, spacing: 3) {
+                        Text("日").font(.system(size: 11, design: .serif)).foregroundColor(.textSecondary)
+                        Picker("", selection: $vm.lunarDay) {
+                            ForEach(1...vm.lunarMaxDay, id: \.self) { d in
+                                Text(lunarDayName(d)).tag(d)
+                            }
+                        }
+                        .pickerStyle(.menu)
+                        .tint(.gold)
+                    }
+                }
+            } else {
+                // 公历日期选择
+                HStack(spacing: 8) {
+                    VStack(alignment: .leading, spacing: 3) {
+                        Text("出生日期（公历）").font(.system(size: 11, design: .serif)).foregroundColor(.textSecondary)
+                        DatePicker("", selection: $vm.selectedDate, in: ...Date(), displayedComponents: .date)
+                            .datePickerStyle(.compact)
+                            .labelsHidden()
+                            .tint(.gold)
+                    }
+                    Spacer()
+                }
+            }
+
+            HStack(spacing: 8) {
                 VStack(alignment: .leading, spacing: 3) {
                     Text("时辰").font(.system(size: 11, design: .serif)).foregroundColor(.textSecondary)
                     Picker("", selection: $vm.selectedHour) {
@@ -47,9 +96,7 @@ struct BaziView: View {
                     .pickerStyle(.menu)
                     .tint(.gold)
                 }
-            }
 
-            HStack(spacing: 8) {
                 VStack(alignment: .leading, spacing: 3) {
                     Text("性别").font(.system(size: 11, design: .serif)).foregroundColor(.textSecondary)
                     Picker("", selection: $vm.sex) {
@@ -72,6 +119,22 @@ struct BaziView: View {
         .panelStyle()
     }
 
+    // 农历月名
+    private func lunarMonthName(_ m: Int) -> String {
+        let names = ["正月","二月","三月","四月","五月","六月","七月","八月","九月","十月","冬月","腊月"]
+        return names[m - 1]
+    }
+
+    // 农历日名
+    private func lunarDayName(_ d: Int) -> String {
+        let names = [
+            "初一","初二","初三","初四","初五","初六","初七","初八","初九","初十",
+            "十一","十二","十三","十四","十五","十六","十七","十八","十九","二十",
+            "廿一","廿二","廿三","廿四","廿五","廿六","廿七","廿八","廿九","三十"
+        ]
+        return names[d - 1]
+    }
+
     // MARK: - 结果
     private func resultView(_ r: BaziResult) -> some View {
         VStack(spacing: 12) {
@@ -80,9 +143,16 @@ struct BaziView: View {
                 .font(.system(size: 15, weight: .medium, design: .serif))
                 .foregroundColor(.goldLight)
 
-            Text("\(r.birthYear)年\(r.birthMonth)月\(r.birthDay)日 \(GanZhi.diZhi[((r.birthHour + 1) % 24) / 2])时　\(r.sex == "M" ? "男" : "女")命　\(r.shengXiao)年")
-                .font(.system(size: 12, design: .serif))
-                .foregroundColor(.textSecondary)
+            VStack(spacing: 2) {
+                if !vm.lunarDisplayString.isEmpty {
+                    Text(vm.lunarDisplayString)
+                        .font(.system(size: 12, design: .serif))
+                        .foregroundColor(.gold)
+                }
+                Text("\(r.birthYear)年\(r.birthMonth)月\(r.birthDay)日 \(GanZhi.diZhi[((r.birthHour + 1) % 24) / 2])时　\(r.sex == "M" ? "男" : "女")命　\(r.shengXiao)年")
+                    .font(.system(size: 12, design: .serif))
+                    .foregroundColor(.textSecondary)
+            }
 
             // 四柱网格
             fourPillarsGrid(r.pillars)

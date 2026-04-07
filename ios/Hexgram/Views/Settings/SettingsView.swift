@@ -2,38 +2,83 @@ import SwiftUI
 
 struct SettingsView: View {
     @Environment(\.dismiss) private var dismiss
-    @State private var config = AIConfig.load()
 
     var body: some View {
         NavigationStack {
             ScrollView {
-                VStack(spacing: 16) {
-                    VStack(alignment: .leading, spacing: 6) {
-                        Text("Worker后端地址")
-                            .font(.system(size: 13, weight: .medium, design: .serif))
-                            .foregroundColor(.goldLight)
+                VStack(spacing: 20) {
+                    // 关于
+                    VStack(spacing: 8) {
+                        Text("易学")
+                            .font(.system(size: 28, weight: .bold, design: .serif))
+                            .foregroundColor(.gold)
 
-                        TextField("https://yijing-api.workers.dev", text: $config.endpoint)
-                            .textFieldStyle(HexgramTextFieldStyle())
-                            .autocapitalization(.none)
-                            .keyboardType(.URL)
+                        Text("Hexgram")
+                            .font(.system(size: 14, design: .serif))
+                            .foregroundColor(.textTertiary)
 
-                        Text("AI提示词和API Key安全存储在服务端，App仅发送排盘数据")
-                            .font(.system(size: 9, design: .serif))
+                        Text("六爻纳甲 · 四柱八字 · 黄历查询 · 北帝灵签")
+                            .font(.system(size: 13, design: .serif))
+                            .foregroundColor(.textSecondary)
+                            .multilineTextAlignment(.center)
+
+                        Text("传统易学 · 现代呈现")
+                            .font(.system(size: 12, design: .serif))
                             .foregroundColor(.textTertiary)
                     }
-
-                    Button("保存") {
-                        config.save()
-                        dismiss()
-                    }
-                    .buttonStyle(GoldButtonStyle())
                     .frame(maxWidth: .infinity)
+                    .padding(.vertical, 20)
+
+                    // 说明
+                    VStack(alignment: .leading, spacing: 8) {
+                        Text("关于")
+                            .font(.system(size: 14, weight: .medium, design: .serif))
+                            .foregroundColor(.goldLight)
+
+                        Text("集六爻纳甲排盘、四柱八字命理、传统黄历择日、北帝玄天大帝灵签四大功能于一体的专业易学应用。排盘计算在本地完成，AI深度解读由云端提供。")
+                            .font(.system(size: 12, design: .serif))
+                            .foregroundColor(.textSecondary)
+                    }
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                    .padding(12)
+                    .background(Color.bgPanel)
+                    .clipShape(RoundedRectangle(cornerRadius: 10))
+
+                    // 版本信息
+                    VStack(spacing: 4) {
+                        HStack {
+                            Text("版本").foregroundColor(.textSecondary)
+                            Spacer()
+                            Text(Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String ?? "1.0.0")
+                                .foregroundColor(.textPrimary)
+                        }
+                        .font(.system(size: 12, design: .serif))
+
+                        HStack {
+                            Text("Build").foregroundColor(.textSecondary)
+                            Spacer()
+                            Text(BuildInfo.gitHash)
+                                .foregroundColor(.textTertiary)
+                                .font(.system(size: 11, design: .monospaced))
+                        }
+                        .font(.system(size: 12, design: .serif))
+
+                        HStack {
+                            Text("构建日期").foregroundColor(.textSecondary)
+                            Spacer()
+                            Text(BuildInfo.buildDate)
+                                .foregroundColor(.textTertiary)
+                        }
+                        .font(.system(size: 12, design: .serif))
+                    }
+                    .padding(12)
+                    .background(Color.bgPanel)
+                    .clipShape(RoundedRectangle(cornerRadius: 10))
                 }
                 .padding(16)
             }
             .background(Color.bgPrimary)
-            .navigationTitle("AI 设置")
+            .navigationTitle("关于")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .topBarTrailing) {

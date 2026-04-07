@@ -14,10 +14,18 @@ android {
         targetSdk = 34
         versionCode = 1
         versionName = "1.0"
+
+        // Inject git commit hash as build config
+        val gitHash = try {
+            val process = Runtime.getRuntime().exec("git rev-parse --short HEAD")
+            process.inputStream.bufferedReader().readText().trim()
+        } catch (e: Exception) { "unknown" }
+        buildConfigField("String", "GIT_HASH", "\"$gitHash\"")
     }
 
     buildFeatures {
         compose = true
+        buildConfig = true
     }
 
     compileOptions {
