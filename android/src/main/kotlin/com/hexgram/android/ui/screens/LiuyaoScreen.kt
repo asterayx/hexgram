@@ -171,13 +171,22 @@ fun LiuyaoScreen(viewModel: LiuyaoViewModel = viewModel()) {
             }
 
             Spacer(modifier = Modifier.height(12.dp))
-            Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                GoldButton("🤖 AI深度解读", { viewModel.requestAI() })
-                GhostButton("再占一卦", { viewModel.reset() })
-            }
+            GoldButton(
+                text = if (viewModel.aiLoading) "解读中，请稍候…" else "🤖 AI深度解读",
+                onClick = { viewModel.requestAI() },
+                enabled = !viewModel.aiLoading
+            )
+            Spacer(modifier = Modifier.height(8.dp))
+            GhostButton("再占一卦", { viewModel.reset() })
         }
 
-        // AI
+        // AI loading
+        if (viewModel.aiLoading) {
+            Spacer(modifier = Modifier.height(16.dp))
+            LoadingSpinner("卦师正在参详卦象…")
+        }
+
+        // AI result
         if (viewModel.aiText.isNotBlank()) {
             Spacer(modifier = Modifier.height(16.dp))
             ResultCard {
