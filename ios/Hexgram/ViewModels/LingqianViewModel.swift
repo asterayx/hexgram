@@ -30,6 +30,9 @@ struct LingqianResult {
     let shiYue: String
     let neiZhao: String
     let detail: [String: Any]?
+    let suijunZongShi: String
+    let suijunAgeRange: String
+    let suijunFortune: String
 }
 
 @MainActor
@@ -39,6 +42,8 @@ class LingqianViewModel: ObservableObject {
     @Published var phase: Phase = .input
     @Published var question = ""
     @Published var selectedCategoryIndex = 0
+    @Published var ageText = ""
+    @Published var selectedGender = 0  // 0=男, 1=女
     @Published var qianResult: LingqianResult?
     @Published var resultText = ""
     @Published var detailText = ""
@@ -92,7 +97,7 @@ class LingqianViewModel: ObservableObject {
             qianResult = LingqianResult(
                 qianNum: num, qianName: "第\(num)签", qianType: "",
                 guaXiang: "", shengXiao: "", xiWen: "", shiYue: "", neiZhao: "",
-                detail: nil
+                detail: nil, suijunZongShi: "", suijunAgeRange: "", suijunFortune: ""
             )
             resultText = "## 第\(num)签\n\n⚠ 未配置服务器，无法获取签文"
             return
@@ -107,11 +112,15 @@ class LingqianViewModel: ObservableObject {
         request.httpMethod = "POST"
         request.setValue("application/json", forHTTPHeaderField: "Content-Type")
 
-        let payload: [String: Any] = [
+        var payload: [String: Any] = [
             "qianNum": num,
             "category": selectedCategoryKey,
             "question": question,
+            "gender": selectedGender == 0 ? "男" : "女",
         ]
+        if let age = Int(ageText), age > 0 {
+            payload["age"] = age
+        }
         request.httpBody = try? JSONSerialization.data(withJSONObject: payload)
 
         do {
@@ -122,6 +131,7 @@ class LingqianViewModel: ObservableObject {
                 return
             }
 
+            let suijun = json["suijun"] as? [String: Any]
             let result = LingqianResult(
                 qianNum: qian["qianNum"] as? Int ?? num,
                 qianName: qian["qianName"] as? String ?? "",
@@ -131,7 +141,10 @@ class LingqianViewModel: ObservableObject {
                 xiWen: qian["xiWen"] as? String ?? "",
                 shiYue: qian["shiYue"] as? String ?? "",
                 neiZhao: qian["neiZhao"] as? String ?? "",
-                detail: json["detail"] as? [String: Any]
+                detail: json["detail"] as? [String: Any],
+                suijunZongShi: suijun?["zongShi"] as? String ?? "",
+                suijunAgeRange: suijun?["ageRange"] as? String ?? "",
+                suijunFortune: suijun?["fortune"] as? String ?? ""
             )
             qianResult = result
             resultText = formatResult(result)
@@ -147,6 +160,11 @@ class LingqianViewModel: ObservableObject {
     private func formatResult(_ r: LingqianResult) -> String {
         var s = "## 第\(r.qianNum)签 · \(r.qianName)\n\n"
         if !r.guaXiang.isEmpty { s += "**\(r.guaXiang)** · \(r.qianType)\n\n" }
+        if !r.suijunZongShi.isEmpty { s += "### 岁君总诗\n\(r.suijunZongShi)\n\n" }
+        if !r.suijunFortune.isEmpty {
+            let genderLabel = selectedGender == 0 ? "男" : "女"
+            s += "### 流年运势（\(genderLabel)·\(r.suijunAgeRange)）\n\(r.suijunFortune)\n\n"
+        }
         if !r.shiYue.isEmpty { s += "### 诗曰\n\(r.shiYue)\n\n" }
         if !r.neiZhao.isEmpty { s += "**内兆**：\(r.neiZhao)\n\n" }
         if !r.xiWen.isEmpty { s += "### 典故\n\(r.xiWen)\n\n" }
@@ -193,5 +211,6 @@ class LingqianViewModel: ObservableObject {
         isShaking = false
         aiService.result = nil
         aiService.error = nil
+        // Keep age/gender/category for convenience
     }
 }

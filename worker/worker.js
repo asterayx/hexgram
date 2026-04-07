@@ -597,8 +597,8 @@ async function handleLingqian(request, env, cors) {
 
   try {
     const body = await request.json();
-    // body: { qianNum, category?, question?, aiRead? }
-    const { qianNum, category, question, aiRead } = body;
+    // body: { qianNum, category?, question?, aiRead?, age?, gender? }
+    const { qianNum, category, question, aiRead, age, gender } = body;
 
     if (!qianNum || qianNum < 1 || qianNum > 51) {
       return new Response(JSON.stringify({ error: "签号须在1-51之间" }), { status: 400, headers: jsonH });
@@ -655,6 +655,46 @@ async function handleLingqian(request, env, cors) {
       } catch (e) {}
     }
 
+    // 岁君签：总诗 + 按年龄性别匹配运势
+    let suijun = null;
+    if (row.full_json) {
+      try {
+        const full = JSON.parse(row.full_json);
+        if (full["岁君签"]) {
+          const sj = full["岁君签"];
+          suijun = { zongShi: sj["总诗"] || "" };
+          // 按年龄匹配
+          if (age && sj["年龄运势"]) {
+            const ageNum = parseInt(age);
+            if (!isNaN(ageNum)) {
+              for (const item of sj["年龄运势"]) {
+                const range = item["年龄"];
+                // 匹配 "X-Y岁" 或 "X岁以上"
+                if (range.includes("以上")) {
+                  const min = parseInt(range);
+                  if (ageNum >= min) {
+                    suijun.ageRange = range;
+                    suijun.fortune = gender === "女" ? (item["女"] || item["男"]) : (item["男"] || item["女"]);
+                    break;
+                  }
+                } else {
+                  const parts = range.match(/(\d+)-(\d+)/);
+                  if (parts) {
+                    const [, lo, hi] = parts.map(Number);
+                    if (ageNum >= lo && ageNum <= hi) {
+                      suijun.ageRange = range;
+                      suijun.fortune = gender === "女" ? (item["女"] || item["男"]) : (item["男"] || item["女"]);
+                      break;
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      } catch (e) {}
+    }
+
     // AI 深度解读
     let aiReading = null;
     if (aiRead) {
@@ -668,6 +708,7 @@ async function handleLingqian(request, env, cors) {
     return new Response(JSON.stringify({
       qian: qianData,
       detail: detail,
+      suijun: suijun,
       aiReading: aiReading,
       categories: LINGQIAN_CATEGORIES,
     }), { headers: jsonH });
