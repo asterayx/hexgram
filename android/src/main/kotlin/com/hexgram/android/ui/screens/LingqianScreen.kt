@@ -20,8 +20,6 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material3.DropdownMenu
-import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.OutlinedTextFieldDefaults
@@ -55,6 +53,7 @@ import com.hexgram.android.ui.components.SectionHeader
 import com.hexgram.android.ui.components.ThinkingButton
 import com.hexgram.android.ui.share.ShareService
 import com.hexgram.android.ui.theme.HexgramColors
+import com.hexgram.android.ui.theme.SerifFont
 import com.hexgram.android.viewmodels.LINGQIAN_CATEGORIES
 import com.hexgram.android.viewmodels.LingqianViewModel
 
@@ -110,19 +109,26 @@ private fun InputSection(vm: LingqianViewModel) {
             singleLine = true
         )
 
+        // 事类 — 使用与六爻一致的 CategoryDropdown
+        Text("事类", fontSize = 14.sp, fontFamily = SerifFont, color = HexgramColors.textSecondary)
+        Spacer(modifier = Modifier.height(4.dp))
+        CategoryDropdown(
+            selectedIndex = vm.selectedCategoryIndex,
+            onSelect = { vm.selectedCategoryIndex = it },
+            categories = LINGQIAN_CATEGORIES.map { it.label }
+        )
+
+        Spacer(modifier = Modifier.height(4.dp))
+
+        // 性别 + 年龄
         Row(
             horizontalArrangement = Arrangement.spacedBy(12.dp),
             verticalAlignment = Alignment.Top
         ) {
-            // 事类下拉
-            LingqianCategoryDropdown(
-                selectedIndex = vm.selectedCategoryIndex,
-                onSelect = { vm.selectedCategoryIndex = it }
-            )
-
             // 性别选择
             Column {
-                Text("性别", fontSize = 11.sp, color = HexgramColors.textSecondary)
+                Text("性别", fontSize = 14.sp, fontFamily = SerifFont, color = HexgramColors.textSecondary)
+                Spacer(modifier = Modifier.height(4.dp))
                 Row(horizontalArrangement = Arrangement.spacedBy(0.dp)) {
                     listOf("男" to 0, "女" to 1).forEach { (label, idx) ->
                         val selected = vm.selectedGender == idx
@@ -130,33 +136,39 @@ private fun InputSection(vm: LingqianViewModel) {
                             text = label,
                             color = if (selected) HexgramColors.bgPrimary else HexgramColors.gold,
                             fontSize = 14.sp,
+                            fontFamily = SerifFont,
                             textAlign = TextAlign.Center,
                             modifier = Modifier
-                                .clip(RoundedCornerShape(if (idx == 0) 6.dp else 0.dp, if (idx == 1) 6.dp else 0.dp, if (idx == 1) 6.dp else 0.dp, if (idx == 0) 6.dp else 0.dp))
-                                .background(if (selected) HexgramColors.gold else HexgramColors.bgPanel)
-                                .border(1.dp, HexgramColors.gold, RoundedCornerShape(if (idx == 0) 6.dp else 0.dp, if (idx == 1) 6.dp else 0.dp, if (idx == 1) 6.dp else 0.dp, if (idx == 0) 6.dp else 0.dp))
+                                .clip(RoundedCornerShape(if (idx == 0) 8.dp else 0.dp, if (idx == 1) 8.dp else 0.dp, if (idx == 1) 8.dp else 0.dp, if (idx == 0) 8.dp else 0.dp))
+                                .background(if (selected) HexgramColors.gold else HexgramColors.bgResult)
+                                .border(1.dp, HexgramColors.gold, RoundedCornerShape(if (idx == 0) 8.dp else 0.dp, if (idx == 1) 8.dp else 0.dp, if (idx == 1) 8.dp else 0.dp, if (idx == 0) 8.dp else 0.dp))
                                 .clickable { vm.selectedGender = idx }
-                                .padding(horizontal = 12.dp, vertical = 8.dp)
+                                .padding(horizontal = 16.dp, vertical = 12.dp)
                         )
                     }
                 }
             }
 
             // 年龄输入
-            Column {
-                Text("年龄", fontSize = 11.sp, color = HexgramColors.textSecondary)
+            Column(modifier = Modifier.weight(1f)) {
+                Text("年龄", fontSize = 14.sp, fontFamily = SerifFont, color = HexgramColors.textSecondary)
+                Spacer(modifier = Modifier.height(4.dp))
                 OutlinedTextField(
                     value = vm.ageText,
                     onValueChange = { vm.ageText = it.filter { c -> c.isDigit() } },
-                    placeholder = { Text("岁", color = HexgramColors.textTertiary, fontSize = 14.sp) },
-                    modifier = Modifier.widthIn(max = 70.dp),
+                    placeholder = { Text("岁", color = HexgramColors.textTertiary, fontFamily = SerifFont, fontSize = 14.sp) },
+                    modifier = Modifier.fillMaxWidth(),
                     colors = OutlinedTextFieldDefaults.colors(
                         focusedTextColor = HexgramColors.textPrimary,
                         unfocusedTextColor = HexgramColors.textPrimary,
                         focusedBorderColor = HexgramColors.gold,
                         unfocusedBorderColor = HexgramColors.border,
+                        focusedContainerColor = HexgramColors.bgResult,
+                        unfocusedContainerColor = HexgramColors.bgResult,
                         cursorColor = HexgramColors.gold,
                     ),
+                    shape = RoundedCornerShape(8.dp),
+                    textStyle = androidx.compose.ui.text.TextStyle(fontFamily = SerifFont, fontSize = 14.sp),
                     singleLine = true,
                     keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
                 )
@@ -165,40 +177,6 @@ private fun InputSection(vm: LingqianViewModel) {
     }
 }
 
-@Composable
-private fun LingqianCategoryDropdown(selectedIndex: Int, onSelect: (Int) -> Unit) {
-    var expanded by remember { mutableStateOf(false) }
-    Column {
-        Text("事类", fontSize = 11.sp, color = HexgramColors.textSecondary)
-        Box {
-            Text(
-                text = LINGQIAN_CATEGORIES[selectedIndex].label,
-                color = HexgramColors.gold,
-                fontSize = 14.sp,
-                modifier = Modifier
-                    .clip(RoundedCornerShape(6.dp))
-                    .background(HexgramColors.bgPanel)
-                    .clickable { expanded = true }
-                    .padding(horizontal = 12.dp, vertical = 8.dp)
-            )
-            DropdownMenu(
-                expanded = expanded,
-                onDismissRequest = { expanded = false },
-                modifier = Modifier.background(HexgramColors.bgPanel)
-            ) {
-                LINGQIAN_CATEGORIES.forEachIndexed { index, cat ->
-                    DropdownMenuItem(
-                        text = { Text(cat.label, color = HexgramColors.textPrimary) },
-                        onClick = {
-                            onSelect(index)
-                            expanded = false
-                        }
-                    )
-                }
-            }
-        }
-    }
-}
 
 @Composable
 private fun ShakeSection(vm: LingqianViewModel) {
