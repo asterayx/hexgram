@@ -47,6 +47,10 @@ import com.hexgram.android.ui.theme.SerifFont
 import com.hexgram.android.ui.theme.wuxingColor
 import com.hexgram.android.viewmodels.BaziViewModel
 import com.hexgram.android.models.GanZhi
+import com.hexgram.android.ui.share.BaziShareCard
+import com.hexgram.android.ui.share.ShareService
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalDensity
 
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
@@ -54,6 +58,8 @@ fun BaziScreen(
     viewModel: BaziViewModel = viewModel()
 ) {
     val scrollState = rememberScrollState()
+    val context = LocalContext.current
+    val density = LocalDensity.current
 
     Column(
         modifier = Modifier
@@ -566,6 +572,18 @@ fun BaziScreen(
                     onClick = { viewModel.requestAI() }
                 )
             }
+
+            Spacer(modifier = Modifier.height(8.dp))
+            GhostButton(
+                text = "分享命盘",
+                onClick = {
+                    val widthPx = with(density) { 360.dp.roundToPx() }
+                    val bitmap = ShareService.captureBitmap(context, widthPx) {
+                        BaziShareCard(r)
+                    }
+                    ShareService.shareImage(context, bitmap, "八字命盘")
+                }
+            )
         }
 
         Spacer(modifier = Modifier.height(32.dp))

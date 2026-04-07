@@ -2,6 +2,7 @@ import SwiftUI
 
 struct HuangliView: View {
     @StateObject private var vm = HuangliViewModel()
+    @State private var showShareSheet = false
 
     var body: some View {
         ScrollView {
@@ -64,6 +65,21 @@ struct HuangliView: View {
                     }
                 }
                 .buttonStyle(GoldButtonStyle())
+
+                Button(action: { showShareSheet = true }) {
+                    HStack(spacing: 4) {
+                        Image(systemName: "square.and.arrow.up")
+                        Text("分享")
+                    }
+                }
+                .buttonStyle(GhostButtonStyle())
+            }
+        }
+        .sheet(isPresented: $showShareSheet) {
+            if let r = vm.result {
+                let card = PaipanSnapshot.huangliCard(result: r)
+                let image = PaipanSnapshot.render(card, size: CGSize(width: 360, height: 400))
+                ShareSheet(items: [image as Any].compactMap { $0 is NSNull ? nil : $0 })
             }
         }
     }

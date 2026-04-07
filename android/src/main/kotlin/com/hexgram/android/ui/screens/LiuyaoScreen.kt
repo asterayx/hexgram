@@ -52,10 +52,16 @@ import com.hexgram.android.viewmodels.LiuyaoViewModel
 import com.hexgram.android.models.GuaResult
 import com.hexgram.android.models.YAO_NAMES
 import com.hexgram.android.models.YAO_LABELS
+import com.hexgram.android.ui.share.LiuyaoShareCard
+import com.hexgram.android.ui.share.ShareService
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalDensity
 
 @Composable
 fun LiuyaoScreen(viewModel: LiuyaoViewModel = viewModel()) {
     val scrollState = rememberScrollState()
+    val context = LocalContext.current
+    val density = LocalDensity.current
 
     Column(
         modifier = Modifier
@@ -178,6 +184,16 @@ fun LiuyaoScreen(viewModel: LiuyaoViewModel = viewModel()) {
                 GoldButton("🤖 AI深度解读", { viewModel.requestAI() })
             }
             Spacer(modifier = Modifier.height(8.dp))
+            viewModel.guaResult?.let { guaForShare ->
+                GhostButton("分享卦象", {
+                    val widthPx = with(density) { 360.dp.roundToPx() }
+                    val bitmap = ShareService.captureBitmap(context, widthPx) {
+                        LiuyaoShareCard(guaForShare)
+                    }
+                    ShareService.shareImage(context, bitmap, "六爻排盘")
+                })
+                Spacer(modifier = Modifier.height(8.dp))
+            }
             GhostButton("再占一卦", { viewModel.reset() })
         }
 

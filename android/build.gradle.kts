@@ -40,5 +40,6 @@ dependencies {
     implementation(libs.lifecycle.viewmodel.compose)
     implementation(libs.lifecycle.runtime.compose)
     implementation(libs.navigation.compose)
+    implementation("androidx.core:core-ktx:1.12.0")
     debugImplementation(libs.compose.ui.tooling)
 }

@@ -47,6 +47,10 @@ import com.hexgram.android.ui.components.TagChip
 import com.hexgram.android.ui.theme.HexgramColors
 import com.hexgram.android.ui.theme.SerifFont
 import com.hexgram.android.viewmodels.HuangliViewModel
+import com.hexgram.android.ui.share.HuangliShareCard
+import com.hexgram.android.ui.share.ShareService
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalDensity
 
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
@@ -54,6 +58,8 @@ fun HuangliScreen(
     viewModel: HuangliViewModel = viewModel()
 ) {
     val scrollState = rememberScrollState()
+    val context = LocalContext.current
+    val density = LocalDensity.current
 
     Column(
         modifier = Modifier
@@ -424,6 +430,18 @@ fun HuangliScreen(
                     onClick = { viewModel.requestAI() }
                 )
             }
+
+            Spacer(modifier = Modifier.height(8.dp))
+            GhostButton(
+                text = "分享黄历",
+                onClick = {
+                    val widthPx = with(density) { 360.dp.roundToPx() }
+                    val bitmap = ShareService.captureBitmap(context, widthPx) {
+                        HuangliShareCard(r)
+                    }
+                    ShareService.shareImage(context, bitmap, "每日黄历")
+                }
+            )
         }
 
         Spacer(modifier = Modifier.height(32.dp))
