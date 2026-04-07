@@ -30,6 +30,12 @@ struct LiuyaoView: View {
                             .id("result")
                     }
 
+                    // 经典文献
+                    if vm.phase == .done {
+                        classicsSection
+                            .id("classics")
+                    }
+
                     // AI解读
                     aiSection
                         .id("ai")
@@ -62,6 +68,17 @@ struct LiuyaoView: View {
                 .textFieldStyle(HexgramTextFieldStyle())
 
             HStack(spacing: 8) {
+                VStack(alignment: .leading, spacing: 3) {
+                    Text("事类").font(.system(size: 11, design: .serif)).foregroundColor(.textSecondary)
+                    Picker("", selection: $vm.selectedCategoryIndex) {
+                        ForEach(Array(vm.categories.enumerated()), id: \.offset) { index, cat in
+                            Text(cat.label).tag(index)
+                        }
+                    }
+                    .pickerStyle(.menu)
+                    .tint(.gold)
+                }
+
                 VStack(alignment: .leading, spacing: 3) {
                     Text("占卦日期").font(.system(size: 11, design: .serif)).foregroundColor(.textSecondary)
                     DatePicker("", selection: $vm.selectedDate, displayedComponents: .date)
@@ -399,6 +416,21 @@ struct LiuyaoView: View {
         .background(Color.bgPanel.opacity(0.6))
         .clipShape(RoundedRectangle(cornerRadius: 10))
         .overlay(RoundedRectangle(cornerRadius: 10).stroke(Color.border, lineWidth: 0.5))
+    }
+
+    // MARK: - 经典文献
+    private var classicsSection: some View {
+        Group {
+            if vm.classicsLoading {
+                ThinkingButton(text: "正在查阅经典文献…")
+            } else if !vm.classicsText.isEmpty {
+                VStack(alignment: .leading, spacing: 8) {
+                    Text("经典文献对照").font(.system(size: 15, weight: .medium, design: .serif)).foregroundColor(.goldLight)
+                    MarkdownText(vm.classicsText)
+                }
+                .resultStyle()
+            }
+        }
     }
 
     // MARK: - AI区域

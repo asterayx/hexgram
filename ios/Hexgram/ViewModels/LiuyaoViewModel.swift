@@ -6,13 +6,19 @@ class LiuyaoViewModel: ObservableObject {
     @Published var phase: Phase = .input
     @Published var isTossing = false
     @Published var question = ""
+    @Published var selectedCategoryIndex = 0  // 综合
     @Published var selectedDate = Date()
     @Published var selectedHour = 11  // 午时
     @Published var guaResult: GuaResult?
     @Published var resultText = ""
+    @Published var classicsText = ""
+    @Published var classicsLoading = false
 
     // AI
     let aiService = AIService()
+
+    // 事类列表（从 Worker 获取，有默认值兜底）
+    @Published var categories: [QuestionCategory] = QUESTION_CATEGORIES
 
     enum Phase {
         case input, reading, done
@@ -58,12 +64,10 @@ class LiuyaoViewModel: ObservableObject {
         guard lines.count < 6, !isTossing else { return }
         isTossing = true
 
-        // 模拟投掷延迟
         DispatchQueue.main.asyncAfter(deadline: .now() + 0.7) { [weak self] in
             guard let self else { return }
-            // 三枚铜钱
             let coins = (0..<3).map { _ in Bool.random() ? 2 : 3 }
-            let value = coins.reduce(0, +) // 6/7/8/9
+            let value = coins.reduce(0, +)
             self.lines.append(value)
             self.isTossing = false
         }
@@ -79,6 +83,8 @@ class LiuyaoViewModel: ObservableObject {
         phase = .input
         guaResult = nil
         resultText = ""
+        classicsText = ""
+        classicsLoading = false
         aiService.result = nil
         aiService.error = nil
     }
@@ -96,44 +102,76 @@ class LiuyaoViewModel: ObservableObject {
         )
         guaResult = result
         resultText = NajiaEngine.formatGuaText(result)
+        phase = .done
 
-        // 附加经典文献
-        if let classic = GAODAO[result.guaKey] {
-            resultText += "\n## 高岛易断\n\n"
-            resultText += "**【卦断】** \(classic.judgment)\n\n"
-            if !classic.yao.isEmpty {
-                resultText += "**【爻断】**\n"
-                for (i, line) in lines.enumerated() {
-                    let marker = (line == 6 || line == 9) ? " ★" : ""
-                    resultText += "\(YAO_NAMES[i])爻\(marker)：\(classic.yao[i])\n"
+        // 异步查询经典文献
+        Task {
+            await fetchClassics(result: result)
+        }
+    }
+
+    private func fetchClassics(result: GuaResult) async {
+        classicsLoading = true
+        classicsText = ""
+
+        let catKey = categories.indices.contains(selectedCategoryIndex)
+            ? categories[selectedCategoryIndex].key
+            : "_总论"
+
+        do {
+            let classics = try await ClassicsService.shared.query(
+                guaKey: result.guaKey,
+                guaName: result.guaName,
+                changedGuaKey: result.hasChanging ? result.changedGuaKey : nil,
+                changedGuaName: result.hasChanging ? result.changedGuaName : nil,
+                category: catKey
+            )
+
+            // 更新类目列表
+            if !classics.categories.isEmpty {
+                categories = classics.categories
+            }
+
+            // 拼装经典文本
+            var sb = ""
+
+            if let g = classics.gaodao {
+                sb += "## 高岛易断 · \(g.name)卦\n\n"
+                sb += "**【卦断】** \(g.judgment)\n\n"
+                if !g.yao.isEmpty {
+                    sb += "**【爻断】**\n"
+                    for (i, line) in lines.enumerated() {
+                        let marker = (line == 6 || line == 9) ? " ★" : ""
+                        if i < g.yao.count && !g.yao[i].isEmpty {
+                            sb += "\(YAO_NAMES[i])爻\(marker)：\(g.yao[i])\n"
+                        }
+                    }
+                    sb += "\n"
                 }
             }
-        }
 
-        // 黄金策
-        var hjKeys: [String] = []
-        let q = question
-        if q.contains(where: { "财钱利润业绩收入投资".contains($0) }) { hjKeys.append("求财") }
-        if q.contains(where: { "工作事业升职官".contains($0) }) { hjKeys.append("事业") }
-        if q.contains(where: { "婚恋感情对象桃花".contains($0) }) { hjKeys.append("婚姻") }
-        if q.contains(where: { "病健康身体医".contains($0) }) { hjKeys.append("疾病") }
-        if q.contains(where: { "出行旅行程出差".contains($0) }) { hjKeys.append("出行") }
-        if q.contains(where: { "诉官司纠纷法".contains($0) }) { hjKeys.append("诉讼") }
-        if hjKeys.isEmpty { hjKeys.append("求财") }
-
-        resultText += "\n## 黄金策断语\n\n"
-        for key in hjKeys {
-            if let text = HUANGJINCE[key] {
-                resultText += "**【\(key)】**\n\(text)\n\n"
+            if let h = classics.huangjince {
+                sb += "## 黄金策 · \(h.label)\n\n"
+                sb += "\(h.text)\n\n"
             }
+
+            if let j = classics.jiaoshi, !j.isEmpty {
+                sb += "## 焦氏易林\n\n"
+                sb += "**\(result.guaName)之\(result.changedGuaName ?? "")**：\(j)\n\n"
+            }
+
+            classicsText = sb
+        } catch {
+            classicsText = "经典查询失败：\(error.localizedDescription)"
         }
 
-        phase = .done
+        classicsLoading = false
     }
 
     // MARK: - AI解读
     func aiRead() async {
         guard !resultText.isEmpty else { return }
-        await aiService.callWorker(type: "liuyao", data: resultText, question: question)
+        let fullData = resultText + (classicsText.isEmpty ? "" : "\n\n\(classicsText)")
+        await aiService.callWorker(type: "liuyao", data: fullData, question: question)
     }
 }

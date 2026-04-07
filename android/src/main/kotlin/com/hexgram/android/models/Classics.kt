@@ -1,119 +1,155 @@
 package com.hexgram.android.models
 
+import android.content.Context
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
+import org.json.JSONArray
+import org.json.JSONObject
+import java.io.OutputStreamWriter
+import java.net.HttpURLConnection
+import java.net.URL
+
+// 数据类
 data class ClassicEntry(
     val name: String,
     val judgment: String,
     val yao: List<String>
 )
 
-object Classics {
+data class HuangjinceEntry(
+    val category: String,
+    val label: String,
+    val text: String
+)
 
-    val GAODAO: Map<String, ClassicEntry> = mapOf(
-        "111111" to ClassicEntry(
-            "乾",
-            "此卦纯阳刚健，天行健，君子以自强不息。大亨利正之象，龙德正中。占得此卦，利于进取，但须持正。",
-            listOf(
-                "初九：潜龙勿用。时位未至，宜韬光养晦。",
-                "九二：见龙在田，利见大人。德施普也，贵人相助。",
-                "九三：君子终日乾乾，夕惕若，厉无咎。勤勉不懈。",
-                "九四：或跃在渊，无咎。进退自如，审时度势。",
-                "九五：飞龙在天，利见大人。居尊位而天下治。",
-                "上九：亢龙有悔。位极则反，盛极必衰。"
-            )
-        ),
-        "000000" to ClassicEntry(
-            "坤",
-            "此卦纯阴柔顺，地势坤，君子以厚德载物。利在从顺，不宜先动。占得此卦，宜守不宜攻，静待时机。",
-            listOf(
-                "初六：履霜坚冰至。见微知著，防患未然。",
-                "六二：直方大，不习无不利。坤德之正，柔顺中正。",
-                "六三：含章可贞。才华内蕴，待时而动。",
-                "六四：括囊无咎无誉。谨慎自守，避免是非。",
-                "六五：黄裳元吉。居中守正，大吉之兆。",
-                "上六：龙战于野，其血玄黄。阴极生阳，有所冲突。"
-            )
-        ),
-        "100010" to ClassicEntry(
-            "屯",
-            "屯者，难也。万物始生之难。云雷屯，动乎险中。利建侯，不宁。占得此卦，创业艰难，须坚忍。",
-            listOf(
-                "初九：磐桓，利居贞，利建侯。奠基立业之时。",
-                "六二：屯如邅如，乘马班如。求婚媾，女子贞不字，十年乃字。",
-                "六三：即鹿无虞，唯入于林中。进退两难。",
-                "六四：乘马班如，求婚媾。往吉无不利。",
-                "九五：屯其膏，小贞吉，大贞凶。量力而行。",
-                "上六：乘马班如，泣血涟如。困顿之极。"
-            )
-        ),
-        "010001" to ClassicEntry(
-            "蒙",
-            "蒙者，蒙昧也。山下出泉。匪我求童蒙，童蒙求我。利贞。占此卦宜求教于人，虚心学习。",
-            listOf(
-                "初六：发蒙，利用刑人。启蒙教育，须有规矩。",
-                "九二：包蒙吉，纳妇吉，子克家。包容教化。",
-                "六三：勿用取女。见金夫不有躬，无攸利。",
-                "六四：困蒙，吝。闭塞不通，有所遗憾。",
-                "六五：童蒙吉。虚心受教，终得开悟。",
-                "上九：击蒙，不利为寇，利御寇。当断则断。"
-            )
-        ),
-        "111010" to ClassicEntry(
-            "需",
-            "需者，须也。云上于天。有孚，光亨贞吉，利涉大川。等待时机成熟，不可冒进。",
-            listOf(
-                "初九：需于郊。利用恒，无咎。在远处等待。",
-                "九二：需于沙，小有言，终吉。耐心候之。",
-                "九三：需于泥，致寇至。处境不佳，招致麻烦。",
-                "六四：需于血，出自穴。身处险境，须冷静。",
-                "九五：需于酒食，贞吉。中正待时，享泰来。",
-                "上六：入于穴，有不速之客三人来，敬之终吉。"
-            )
-        ),
-        "010111" to ClassicEntry(
-            "讼",
-            "讼者，争也。天与水违行。有孚窒，惕中吉，终凶。利见大人，不利涉大川。争讼之象。",
-            listOf(
-                "初六：不永所事，小有言，终吉。及早罢讼。",
-                "九二：不克讼，归而逋。其邑人三百户，无眚。",
-                "六三：食旧德，贞厉，终吉。守旧为安。",
-                "九四：不克讼，复即命渝。安贞吉。退让为宜。",
-                "九五：讼元吉。居中裁判，公正无私。",
-                "上九：或锡之鞶带，终朝三褫之。得而复失。"
-            )
-        ),
-        "101101" to ClassicEntry(
-            "离",
-            "离者，附也。日月丽乎天，百谷草木丽乎土。重明以丽乎正，乃化成天下。文明之象。",
-            listOf(
-                "初九：履错然，敬之无咎。谨慎起步。",
-                "六二：黄离元吉。中正柔顺，大吉。",
-                "九三：日昃之离，不鼓缶而歌，则大耋之嗟。凶。",
-                "九四：突如其来如，焚如，死如，弃如。",
-                "六五：出涕沱若，戚嗟若，吉。忧患意识。",
-                "上九：王用出征，有嘉折首，获匪其丑，无咎。"
-            )
-        ),
-        "010010" to ClassicEntry(
-            "坎",
-            "坎者，险也。水洊至。习坎，有孚，维心亨，行有尚。身处险境，以诚信度过。",
-            listOf(
-                "初六：习坎入于坎窞，凶。陷入困境。",
-                "九二：坎有险，求小得。中正之道。",
-                "六三：来之坎坎，险且枕，入于坎窞。勿用。",
-                "六四：樽酒簋贰，用缶，纳约自牖，终无咎。",
-                "九五：坎不盈，祗既平，无咎。险境将过。",
-                "上六：系用徽纆，寘于丛棘，三岁不得，凶。"
-            )
-        )
-    )
+data class QuestionCategory(
+    val key: String,
+    val label: String
+)
 
-    val HUANGJINCE: Map<String, String> = mapOf(
-        "_总论" to "动静阴阳，反覆迁变。虽万象之纷纭，须一理而融贯。",
-        "求财" to "财爻为用神。妻财旺相有气，求财遂意。子孙发动生财，财源滚滚。兄弟持世劫财，求财费力。父母发动克子孙，财路受阻。官鬼发动生财，有贵人相助。",
-        "事业" to "官鬼为用神。官星旺相持世，职位稳固。父母为文书印信，宜官星配合。子孙克官，不利求官。兄弟持世，同辈竞争。财爻生官，以财求名。",
-        "婚姻" to "男占以妻财为用，女占以官鬼为用。世应相生，婚姻可成。世应相克，必有阻碍。间爻发动，有人从中作梗。六合卦主成，六冲卦主散。",
-        "疾病" to "官鬼为病症，子孙为医药。官鬼旺动克世，病势凶猛。子孙持世发动，药到病除。用神入墓化绝，病情危重。",
-        "出行" to "世爻为出行人。世爻旺相，利于出行。应爻克世，途中有阻。子孙持世，一路平安。官鬼持世，恐有灾祸。",
-        "诉讼" to "世为原告，应为被告。世旺应衰，我方有利。世衰应旺，对方得势。官鬼持世，得官方支持。兄弟持世，耗财破败。"
-    )
+data class ClassicsResult(
+    val gaodao: ClassicEntry?,
+    val huangjince: HuangjinceEntry?,
+    val jiaoshi: String?,
+    val categories: List<QuestionCategory>
+)
+
+// 默认事类（在网络不可用时使用）
+val DEFAULT_CATEGORIES = listOf(
+    QuestionCategory("_总论", "综合"),
+    QuestionCategory("求财", "求财"),
+    QuestionCategory("事业", "事业"),
+    QuestionCategory("感情", "感情"),
+    QuestionCategory("婚姻", "婚姻"),
+    QuestionCategory("考试", "考试"),
+    QuestionCategory("家宅", "家宅"),
+    QuestionCategory("疾病", "疾病"),
+    QuestionCategory("出行", "出行"),
+    QuestionCategory("诉讼", "诉讼"),
+    QuestionCategory("失物", "失物"),
+    QuestionCategory("天气", "天气"),
+    QuestionCategory("怀孕", "怀孕"),
+    QuestionCategory("投资", "投资"),
+    QuestionCategory("求职", "求职"),
+    QuestionCategory("生意", "生意"),
+)
+
+/**
+ * 经典文献服务 - 通过 Worker /api/classics 查询
+ * Worker 先查 D1 缓存，缓存未命中则调用 LLM 生成并存入 D1
+ */
+object ClassicsService {
+
+    suspend fun query(
+        context: Context,
+        guaKey: String,
+        guaName: String = "",
+        changedGuaKey: String? = null,
+        changedGuaName: String? = null,
+        category: String? = null
+    ): ClassicsResult = withContext(Dispatchers.IO) {
+        val endpoint = AIService.getEndpoint(context)
+        if (endpoint.isBlank()) {
+            return@withContext ClassicsResult(null, null, null, DEFAULT_CATEGORIES)
+        }
+
+        // 构建 /api/classics URL
+        val baseUrl = endpoint.trimEnd('/')
+        val classicsUrl = if (baseUrl.endsWith("/api/classics")) baseUrl
+            else baseUrl.replace(Regex("/+$"), "").let {
+                // 如果 endpoint 是 "https://xxx.workers.dev" 或 "https://xxx.workers.dev/"
+                val base = it.removeSuffix("/")
+                "$base/api/classics"
+            }
+
+        val conn = URL(classicsUrl).openConnection() as HttpURLConnection
+        try {
+            conn.requestMethod = "POST"
+            conn.setRequestProperty("Content-Type", "application/json")
+            conn.connectTimeout = 15_000
+            conn.readTimeout = 60_000
+            conn.doOutput = true
+
+            val body = JSONObject().apply {
+                put("guaKey", guaKey)
+                put("guaName", guaName)
+                if (changedGuaKey != null) put("changedGuaKey", changedGuaKey)
+                if (changedGuaName != null) put("changedGuaName", changedGuaName)
+                if (category != null) put("category", category)
+            }
+
+            OutputStreamWriter(conn.outputStream, "UTF-8").use { it.write(body.toString()) }
+
+            val code = conn.responseCode
+            val text = if (code in 200..299) {
+                conn.inputStream.bufferedReader().use { it.readText() }
+            } else {
+                return@withContext ClassicsResult(null, null, null, DEFAULT_CATEGORIES)
+            }
+
+            parseClassicsResponse(JSONObject(text))
+        } catch (e: Exception) {
+            ClassicsResult(null, null, null, DEFAULT_CATEGORIES)
+        } finally {
+            conn.disconnect()
+        }
+    }
+
+    private fun parseClassicsResponse(json: JSONObject): ClassicsResult {
+        // gaodao
+        val gaodao = json.optJSONObject("gaodao")?.let { g ->
+            val yaoArr = g.optJSONArray("yao")
+            val yao = if (yaoArr != null) {
+                (0 until yaoArr.length()).map { yaoArr.optString(it, "") }
+            } else emptyList()
+            ClassicEntry(
+                name = g.optString("name", ""),
+                judgment = g.optString("judgment", ""),
+                yao = yao
+            )
+        }
+
+        // huangjince
+        val huangjince = json.optJSONObject("huangjince")?.let { h ->
+            HuangjinceEntry(
+                category = h.optString("category", ""),
+                label = h.optString("label", ""),
+                text = h.optString("text", "")
+            )
+        }
+
+        // jiaoshi
+        val jiaoshi = json.optString("jiaoshi", "").ifBlank { null }
+
+        // categories
+        val catArr = json.optJSONArray("categories")
+        val categories = if (catArr != null && catArr.length() > 0) {
+            (0 until catArr.length()).map { i ->
+                val c = catArr.getJSONObject(i)
+                QuestionCategory(c.optString("key"), c.optString("label"))
+            }
+        } else DEFAULT_CATEGORIES
+
+        return ClassicsResult(gaodao, huangjince, jiaoshi, categories)
+    }
 }

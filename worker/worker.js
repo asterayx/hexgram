@@ -24,6 +24,11 @@ export default {
     if (path === "/admin") return serveAdminUI(env);
     if (path.startsWith("/api/admin/")) return handleAdmin(request, env, path, cors);
 
+    // Classics API (D1 cache + LLM)
+    if (path === "/api/classics" && request.method === "POST") {
+      return handleClassics(request, env, cors);
+    }
+
     // AI proxy
     if (request.method !== "POST") {
       return new Response(JSON.stringify({ error: "Method not allowed" }), {
@@ -424,6 +429,215 @@ function buildPrompt(data) {
   }
 
   throw new Error("Invalid request format");
+}
+
+// ═══════════════════════════════════════════════════
+// 经典文献查询 (D1 缓存 + LLM 生成)
+// ═══════════════════════════════════════════════════
+
+// 事类列表（app下拉框用）
+const QUESTION_CATEGORIES = [
+  { key: "_总论", label: "综合" },
+  { key: "求财", label: "求财" },
+  { key: "事业", label: "事业" },
+  { key: "感情", label: "感情" },
+  { key: "婚姻", label: "婚姻" },
+  { key: "考试", label: "考试" },
+  { key: "家宅", label: "家宅" },
+  { key: "疾病", label: "疾病" },
+  { key: "出行", label: "出行" },
+  { key: "诉讼", label: "诉讼" },
+  { key: "失物", label: "失物" },
+  { key: "天气", label: "天气" },
+  { key: "怀孕", label: "怀孕" },
+  { key: "投资", label: "投资" },
+  { key: "求职", label: "求职" },
+  { key: "生意", label: "生意" },
+];
+
+async function handleClassics(request, env, cors) {
+  const jsonH = { ...cors, "Content-Type": "application/json" };
+
+  try {
+    const body = await request.json();
+    // body: { guaKey, guaName?, changedGuaKey?, changedGuaName?, category? }
+    const { guaKey, changedGuaKey, category } = body;
+
+    if (!guaKey) {
+      return new Response(JSON.stringify({ error: "缺少 guaKey" }), { status: 400, headers: jsonH });
+    }
+
+    // 1. 查 D1 缓存
+    const cached = await queryCache(env, guaKey, changedGuaKey, category);
+
+    // 2. 标记缺什么
+    const need = {
+      gaodao: !cached.gaodao,
+      huangjince: category && !cached.huangjince,
+      jiaoshi: changedGuaKey && !cached.jiaoshi,
+    };
+
+    const needAny = need.gaodao || need.huangjince || need.jiaoshi;
+
+    // 3. 缺的部分问 LLM
+    if (needAny) {
+      const config = await loadConfig(env);
+      if (config.provider && config.apiKey && config.model) {
+        const generated = await generateClassics(config, body, need);
+        // 写入 D1
+        await storeCache(env, guaKey, changedGuaKey, category, generated, need);
+        // 合并
+        if (need.gaodao && generated.gaodao) cached.gaodao = generated.gaodao;
+        if (need.huangjince && generated.huangjince) cached.huangjince = generated.huangjince;
+        if (need.jiaoshi && generated.jiaoshi) cached.jiaoshi = generated.jiaoshi;
+      }
+    }
+
+    return new Response(JSON.stringify({
+      gaodao: cached.gaodao || null,
+      huangjince: cached.huangjince || null,
+      jiaoshi: cached.jiaoshi || null,
+      categories: QUESTION_CATEGORIES,
+    }), { headers: jsonH });
+
+  } catch (err) {
+    return new Response(JSON.stringify({ error: err.message }), {
+      status: 500, headers: jsonH
+    });
+  }
+}
+
+// 事类列表单独 GET 也可拿
+// （app 启动时获取类目列表用）
+// 已合并到 /api/classics 响应中
+
+async function queryCache(env, guaKey, changedGuaKey, category) {
+  const result = {};
+
+  // 高岛易断
+  const gd = await env.DB.prepare("SELECT * FROM gaodao WHERE gua_key = ?").bind(guaKey).first();
+  if (gd) {
+    result.gaodao = {
+      name: gd.gua_name,
+      judgment: gd.judgment,
+      yao: [gd.yao_0, gd.yao_1, gd.yao_2, gd.yao_3, gd.yao_4, gd.yao_5],
+    };
+  }
+
+  // 黄金策
+  if (category) {
+    const hj = await env.DB.prepare("SELECT * FROM huangjince WHERE category = ?").bind(category).first();
+    if (hj) {
+      result.huangjince = { category: hj.category, label: hj.label, text: hj.text };
+    }
+  }
+
+  // 焦氏易林
+  if (changedGuaKey) {
+    const js = await env.DB.prepare("SELECT * FROM jiaoshi WHERE ben_key = ? AND bian_key = ?")
+      .bind(guaKey, changedGuaKey).first();
+    if (js) {
+      result.jiaoshi = js.text;
+    }
+  }
+
+  return result;
+}
+
+async function storeCache(env, guaKey, changedGuaKey, category, data, need) {
+  const batch = [];
+
+  if (need.gaodao && data.gaodao) {
+    const g = data.gaodao;
+    batch.push(
+      env.DB.prepare(
+        `INSERT OR REPLACE INTO gaodao (gua_key, gua_name, judgment, yao_0, yao_1, yao_2, yao_3, yao_4, yao_5, updated_at)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, datetime('now'))`
+      ).bind(guaKey, g.name || "", g.judgment || "",
+        (g.yao && g.yao[0]) || "", (g.yao && g.yao[1]) || "", (g.yao && g.yao[2]) || "",
+        (g.yao && g.yao[3]) || "", (g.yao && g.yao[4]) || "", (g.yao && g.yao[5]) || "")
+    );
+  }
+
+  if (need.huangjince && data.huangjince && category) {
+    const h = data.huangjince;
+    batch.push(
+      env.DB.prepare(
+        `INSERT OR REPLACE INTO huangjince (category, label, text, updated_at) VALUES (?, ?, ?, datetime('now'))`
+      ).bind(category, h.label || category, h.text || "")
+    );
+  }
+
+  if (need.jiaoshi && data.jiaoshi && changedGuaKey) {
+    batch.push(
+      env.DB.prepare(
+        `INSERT OR REPLACE INTO jiaoshi (ben_key, bian_key, text) VALUES (?, ?, ?)`
+      ).bind(guaKey, changedGuaKey, data.jiaoshi)
+    );
+  }
+
+  if (batch.length > 0) {
+    await env.DB.batch(batch);
+  }
+}
+
+async function generateClassics(config, body, need) {
+  const { guaKey, guaName, changedGuaKey, changedGuaName, category } = body;
+
+  const parts = [];
+
+  if (need.gaodao) {
+    parts.push(`## 高岛易断
+请为卦码"${guaKey}"（${guaName || "未知"}卦）提供高岛易断的断辞：
+- judgment: 卦断（80-150字，高岛吞象风格，结合实占经验点评此卦在各方面的吉凶趋势）
+- yao: 6条爻断，从初爻到上爻，每条30-80字（爻名：爻辞原文。占事解说。）`);
+  }
+
+  if (need.huangjince && category) {
+    const catLabel = QUESTION_CATEGORIES.find(c => c.key === category)?.label || category;
+    parts.push(`## 黄金策
+请为"${catLabel}"类事项提供黄金策断语（150-300字）：
+- 明确用神是什么
+- 用神旺相/休囚的判断
+- 六亲（兄弟/子孙/妻财/官鬼/父母）发动时对此事的影响
+- 世应关系的判断
+风格参照刘伯温《黄金策》原文，凝练、有韵律感。`);
+  }
+
+  if (need.jiaoshi && changedGuaKey) {
+    parts.push(`## 焦氏易林
+请为本卦"${guaKey}"（${guaName || ""}）变卦"${changedGuaKey}"（${changedGuaName || ""}）提供焦氏易林占辞：
+- 四言或七言古风韵文，2-4句，约20-40字
+- 意象鲜明，暗含吉凶寓意
+风格参照焦赣《焦氏易林》原文。`);
+  }
+
+  const systemPrompt = `你是一位精通中国古典易学的大学者，对以下三部典籍有深入研究：
+1.《高岛易断》（高岛吞象）——日本明治时代易学大家，以实占验证周易六十四卦
+2.《黄金策》（传刘伯温）——六爻占卜分类断语总诀，《卜筮正宗》逐句注解
+3.《焦氏易林》（西汉焦赣）——本卦变卦四言占辞，共4096条
+
+请严格按JSON格式返回结果，不要添加任何markdown代码块标记或其他文字。
+JSON结构：
+{
+  ${need.gaodao ? '"gaodao": { "name": "卦名", "judgment": "卦断文字", "yao": ["初爻断","二爻断","三爻断","四爻断","五爻断","上爻断"] },' : ''}
+  ${need.huangjince ? '"huangjince": { "category": "类目key", "label": "显示名", "text": "断语全文" },' : ''}
+  ${need.jiaoshi ? '"jiaoshi": "占辞文字"' : ''}
+}`;
+
+  const userPrompt = parts.join("\n\n");
+
+  const result = await callLLM(config, { system: systemPrompt, user: userPrompt });
+
+  // 解析 JSON
+  try {
+    // 去除可能的 markdown 代码块标记
+    const cleaned = result.replace(/```json\s*/g, "").replace(/```\s*/g, "").trim();
+    return JSON.parse(cleaned);
+  } catch (e) {
+    console.log("LLM classics parse error:", e.message, "raw:", result.slice(0, 200));
+    return {};
+  }
 }
 
 // ═══════════════════════════════════════════════════

@@ -10,6 +10,15 @@ binding = "CONFIG"
 id = "YOUR_KV_NAMESPACE_ID"
 # preview_id = "YOUR_PREVIEW_KV_NAMESPACE_ID"
 
+# D1 数据库 - 缓存经典文献查询
+# 部署前需创建：wrangler d1 create hexgram-classics
+# 然后将返回的 database_id 填入下方
+# 初始化表：wrangler d1 execute hexgram-classics --file=schema.sql
+[[d1_databases]]
+binding = "DB"
+database_name = "hexgram-classics"
+database_id = "YOUR_D1_DATABASE_ID"
+
 # 环境变量在 Cloudflare Dashboard 中设置（Settings > Variables）
 # ADMIN_PASSWORD - 管理后台密码
 # ALLOWED_ORIGIN - 允许的前端域名

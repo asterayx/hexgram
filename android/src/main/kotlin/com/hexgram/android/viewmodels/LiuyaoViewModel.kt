@@ -8,7 +8,9 @@ import androidx.compose.runtime.setValue
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import com.hexgram.android.models.AIService
-import com.hexgram.android.models.Classics
+import com.hexgram.android.models.ClassicsService
+import com.hexgram.android.models.DEFAULT_CATEGORIES
+import com.hexgram.android.models.QuestionCategory
 import com.hexgram.android.models.GuaResult
 import com.hexgram.android.models.NajiaEngine
 import com.hexgram.android.models.CalendarCalc
@@ -19,6 +21,7 @@ import java.util.Calendar
 class LiuyaoViewModel(application: Application) : AndroidViewModel(application) {
 
     var question by mutableStateOf("")
+    var selectedCategoryIndex by mutableStateOf(0) // 综合
     var selectedYear by mutableStateOf(Calendar.getInstance().get(Calendar.YEAR))
     var selectedMonth by mutableStateOf(Calendar.getInstance().get(Calendar.MONTH) + 1)
     var selectedDay by mutableStateOf(Calendar.getInstance().get(Calendar.DAY_OF_MONTH))
@@ -30,8 +33,13 @@ class LiuyaoViewModel(application: Application) : AndroidViewModel(application) 
 
     var guaResult by mutableStateOf<GuaResult?>(null)
     var resultText by mutableStateOf("")
+    var classicsText by mutableStateOf("")
+    var classicsLoading by mutableStateOf(false)
     var aiText by mutableStateOf("")
     var aiLoading by mutableStateOf(false)
+
+    // 事类列表（从 Worker 获取，有默认值兜底）
+    var categories by mutableStateOf(DEFAULT_CATEGORIES)
 
     companion object {
         val CHINESE_HOURS = listOf(
@@ -70,6 +78,7 @@ class LiuyaoViewModel(application: Application) : AndroidViewModel(application) 
             phase = if (lines.isEmpty()) LiuyaoPhase.INPUT else LiuyaoPhase.TOSSING
             guaResult = null
             resultText = ""
+            classicsText = ""
             aiText = ""
         }
     }
@@ -79,6 +88,7 @@ class LiuyaoViewModel(application: Application) : AndroidViewModel(application) 
         phase = LiuyaoPhase.INPUT
         guaResult = null
         resultText = ""
+        classicsText = ""
         aiText = ""
         isTossing = false
     }
@@ -93,37 +103,64 @@ class LiuyaoViewModel(application: Application) : AndroidViewModel(application) 
         guaResult = result
         resultText = NajiaEngine.formatGuaText(result)
 
-        // Append classics
-        val gaodao = Classics.GAODAO[result.guaKey]
-        if (gaodao != null) {
-            resultText += "\n## 高岛易断\n\n"
-            resultText += "**【卦断】** ${gaodao.judgment}\n\n"
-            if (gaodao.yao.isNotEmpty()) {
-                resultText += "**【爻断】**\n"
-                for ((i, line) in lines.withIndex()) {
-                    val marker = if (line == 6 || line == 9) " ★" else ""
-                    if (i < gaodao.yao.size) {
-                        resultText += "${YAO_NAMES[i]}爻${marker}：${gaodao.yao[i]}\n"
+        // 异步查询经典文献
+        fetchClassics(result)
+    }
+
+    private fun fetchClassics(result: GuaResult) {
+        classicsLoading = true
+        classicsText = ""
+        val catKey = categories.getOrNull(selectedCategoryIndex)?.key ?: "_总论"
+
+        viewModelScope.launch {
+            try {
+                val classics = ClassicsService.query(
+                    context = getApplication(),
+                    guaKey = result.guaKey,
+                    guaName = result.guaName,
+                    changedGuaKey = result.changedGuaKey,
+                    changedGuaName = result.changedGuaName,
+                    category = catKey
+                )
+
+                // 更新类目列表
+                if (classics.categories.isNotEmpty()) {
+                    categories = classics.categories
+                }
+
+                // 拼装经典文本
+                val sb = StringBuilder()
+
+                classics.gaodao?.let { g ->
+                    sb.append("## 高岛易断 · ${g.name}卦\n\n")
+                    sb.append("**【卦断】** ${g.judgment}\n\n")
+                    if (g.yao.isNotEmpty()) {
+                        sb.append("**【爻断】**\n")
+                        for ((i, line) in lines.withIndex()) {
+                            val marker = if (line == 6 || line == 9) " ★" else ""
+                            if (i < g.yao.size && g.yao[i].isNotBlank()) {
+                                sb.append("${YAO_NAMES[i]}爻${marker}：${g.yao[i]}\n")
+                            }
+                        }
+                        sb.append("\n")
                     }
                 }
-            }
-        }
 
-        // 黄金策
-        var hjKeys = mutableListOf<String>()
-        val q = question
-        if (q.any { "财钱利润业绩收入投资".contains(it) }) hjKeys.add("求财")
-        if (q.any { "工作事业升职官".contains(it) }) hjKeys.add("事业")
-        if (q.any { "婚恋感情对象桃花".contains(it) }) hjKeys.add("婚姻")
-        if (q.any { "病健康身体医".contains(it) }) hjKeys.add("疾病")
-        if (q.any { "出行旅行程出差".contains(it) }) hjKeys.add("出行")
-        if (q.any { "诉官司纠纷法".contains(it) }) hjKeys.add("诉讼")
-        if (hjKeys.isEmpty()) hjKeys.add("求财")
+                classics.huangjince?.let { h ->
+                    sb.append("## 黄金策 · ${h.label}\n\n")
+                    sb.append("${h.text}\n\n")
+                }
 
-        resultText += "\n## 黄金策断语\n\n"
-        for (key in hjKeys) {
-            Classics.HUANGJINCE[key]?.let { text ->
-                resultText += "**【${key}】**\n${text}\n\n"
+                classics.jiaoshi?.let { j ->
+                    sb.append("## 焦氏易林\n\n")
+                    sb.append("**${result.guaName}之${result.changedGuaName ?: ""}**：${j}\n\n")
+                }
+
+                classicsText = sb.toString()
+            } catch (e: Exception) {
+                classicsText = "经典查询失败：${e.message}"
+            } finally {
+                classicsLoading = false
             }
         }
     }
@@ -137,12 +174,14 @@ class LiuyaoViewModel(application: Application) : AndroidViewModel(application) 
         }
         aiLoading = true
         aiText = ""
+        // AI 解读时把经典文本也一并发送
+        val fullData = resultText + (if (classicsText.isNotBlank()) "\n\n$classicsText" else "")
         viewModelScope.launch {
             try {
                 aiText = AIService.callWorker(
                     endpoint = endpoint,
                     type = "liuyao",
-                    data = resultText,
+                    data = fullData,
                     question = question
                 )
             } catch (e: Exception) {

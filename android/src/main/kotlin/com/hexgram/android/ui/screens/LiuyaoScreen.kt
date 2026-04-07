@@ -90,6 +90,15 @@ fun LiuyaoScreen(viewModel: LiuyaoViewModel = viewModel()) {
                     ),
                     shape = RoundedCornerShape(8.dp), maxLines = 2
                 )
+
+                Spacer(modifier = Modifier.height(8.dp))
+                Text("事类", fontSize = 14.sp, fontFamily = SerifFont, color = HexgramColors.textSecondary)
+                Spacer(modifier = Modifier.height(4.dp))
+                CategoryDropdown(
+                    selectedIndex = viewModel.selectedCategoryIndex,
+                    onSelect = { viewModel.selectedCategoryIndex = it },
+                    categories = viewModel.categories.map { it.label }
+                )
             }
         }
 
@@ -175,6 +184,17 @@ fun LiuyaoScreen(viewModel: LiuyaoViewModel = viewModel()) {
             Spacer(modifier = Modifier.height(16.dp))
             ResultCard {
                 MarkdownText(viewModel.resultText)
+            }
+
+            // 经典文献（异步加载）
+            if (viewModel.classicsLoading) {
+                Spacer(modifier = Modifier.height(8.dp))
+                ThinkingButton("正在查阅经典文献…")
+            } else if (viewModel.classicsText.isNotBlank()) {
+                Spacer(modifier = Modifier.height(12.dp))
+                ResultCard {
+                    MarkdownText(viewModel.classicsText)
+                }
             }
 
             Spacer(modifier = Modifier.height(12.dp))
@@ -323,6 +343,34 @@ fun HourDropdown(selectedIndex: Int, onSelect: (Int) -> Unit, hours: List<String
             hours.forEachIndexed { index, hour ->
                 DropdownMenuItem(
                     text = { Text(hour, fontFamily = SerifFont, fontSize = 14.sp, color = if (index == selectedIndex) HexgramColors.gold else HexgramColors.textPrimary) },
+                    onClick = { onSelect(index); expanded = false }
+                )
+            }
+        }
+    }
+}
+
+@Composable
+fun CategoryDropdown(selectedIndex: Int, onSelect: (Int) -> Unit, categories: List<String>, modifier: Modifier = Modifier) {
+    var expanded by remember { mutableStateOf(false) }
+    Box(modifier = modifier) {
+        OutlinedTextField(
+            value = categories[selectedIndex], onValueChange = {}, readOnly = true,
+            modifier = Modifier.fillMaxWidth(),
+            colors = OutlinedTextFieldDefaults.colors(
+                focusedTextColor = HexgramColors.textPrimary, unfocusedTextColor = HexgramColors.textPrimary,
+                focusedBorderColor = HexgramColors.gold, unfocusedBorderColor = HexgramColors.border,
+                focusedContainerColor = HexgramColors.bgResult, unfocusedContainerColor = HexgramColors.bgResult
+            ),
+            shape = RoundedCornerShape(8.dp),
+            textStyle = androidx.compose.ui.text.TextStyle(fontFamily = SerifFont, fontSize = 14.sp),
+            enabled = false
+        )
+        Box(modifier = Modifier.matchParentSize().clickable { expanded = true })
+        DropdownMenu(expanded = expanded, onDismissRequest = { expanded = false }, modifier = Modifier.background(HexgramColors.bgPanel)) {
+            categories.forEachIndexed { index, cat ->
+                DropdownMenuItem(
+                    text = { Text(cat, fontFamily = SerifFont, fontSize = 14.sp, color = if (index == selectedIndex) HexgramColors.gold else HexgramColors.textPrimary) },
                     onClick = { onSelect(index); expanded = false }
                 )
             }
