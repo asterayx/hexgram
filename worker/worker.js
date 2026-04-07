@@ -51,17 +51,66 @@ export default {
 };
 
 // ═══════════════════════════════════════════════════
-// KV 配置管理
+// KV 配置管理（API Key AES-GCM 加密存储）
 // ═══════════════════════════════════════════════════
+
+async function deriveKey(env) {
+  const secret = env.ENCRYPTION_KEY || env.ADMIN_PASSWORD || "default-key";
+  const keyMaterial = await crypto.subtle.importKey(
+    "raw", new TextEncoder().encode(secret), "PBKDF2", false, ["deriveKey"]
+  );
+  return crypto.subtle.deriveKey(
+    { name: "PBKDF2", salt: new TextEncoder().encode("hexgram-salt"), iterations: 100000, hash: "SHA-256" },
+    keyMaterial, { name: "AES-GCM", length: 256 }, false, ["encrypt", "decrypt"]
+  );
+}
+
+async function encrypt(text, env) {
+  const key = await deriveKey(env);
+  const iv = crypto.getRandomValues(new Uint8Array(12));
+  const encrypted = await crypto.subtle.encrypt(
+    { name: "AES-GCM", iv }, key, new TextEncoder().encode(text)
+  );
+  // iv(12 bytes) + ciphertext → base64
+  const buf = new Uint8Array(iv.length + encrypted.byteLength);
+  buf.set(iv);
+  buf.set(new Uint8Array(encrypted), iv.length);
+  return btoa(String.fromCharCode(...buf));
+}
+
+async function decrypt(b64, env) {
+  const key = await deriveKey(env);
+  const buf = Uint8Array.from(atob(b64), c => c.charCodeAt(0));
+  const iv = buf.slice(0, 12);
+  const data = buf.slice(12);
+  const decrypted = await crypto.subtle.decrypt({ name: "AES-GCM", iv }, key, data);
+  return new TextDecoder().decode(decrypted);
+}
 
 async function loadConfig(env) {
   const raw = await env.CONFIG.get("llm_config");
   if (!raw) return {};
-  return JSON.parse(raw);
+  const config = JSON.parse(raw);
+  // Decrypt API key
+  if (config.apiKeyEnc) {
+    try {
+      config.apiKey = await decrypt(config.apiKeyEnc, env);
+    } catch {
+      config.apiKey = "";
+    }
+    delete config.apiKeyEnc;
+  }
+  return config;
 }
 
 async function saveConfig(env, config) {
-  await env.CONFIG.put("llm_config", JSON.stringify(config));
+  const toStore = { ...config };
+  // Encrypt API key before storing
+  if (toStore.apiKey) {
+    toStore.apiKeyEnc = await encrypt(toStore.apiKey, env);
+    delete toStore.apiKey;
+  }
+  await env.CONFIG.put("llm_config", JSON.stringify(toStore));
 }
 
 // ═══════════════════════════════════════════════════
