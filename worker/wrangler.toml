@@ -2,9 +2,14 @@ name = "yijing-api"
 main = "worker.js"
 compatibility_date = "2024-12-01"
 
+# KV 命名空间 - 存储管理员配置（provider/model/api key）
+# 部署前需创建：wrangler kv namespace create "CONFIG"
+# 然后将返回的 id 填入下方
+[[kv_namespaces]]
+binding = "CONFIG"
+id = "YOUR_KV_NAMESPACE_ID"
+# preview_id = "YOUR_PREVIEW_KV_NAMESPACE_ID"
+
 # 环境变量在 Cloudflare Dashboard 中设置（Settings > Variables）
-# 不要把 API Key 写在这里
-# [vars]
-# LLM_PROVIDER = "anthropic"
-# ANTHROPIC_MODEL = "claude-sonnet-4-20250514"
-# ALLOWED_ORIGIN = "https://yijing.pages.dev"
+# ADMIN_PASSWORD - 管理后台密码
+# ALLOWED_ORIGIN - 允许的前端域名
