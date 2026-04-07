@@ -36,7 +36,7 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import com.hexgram.android.ui.components.GhostButton
 import com.hexgram.android.ui.components.GoldButton
 import com.hexgram.android.ui.components.InfoRow
-import com.hexgram.android.ui.components.LoadingSpinner
+import com.hexgram.android.ui.components.ThinkingButton
 import com.hexgram.android.ui.components.MarkdownText
 import com.hexgram.android.ui.components.PanelCard
 import com.hexgram.android.ui.components.ResultCard
@@ -545,7 +545,7 @@ fun BaziScreen(
             Spacer(modifier = Modifier.height(16.dp))
 
             if (viewModel.aiLoading) {
-                LoadingSpinner("AI解读中...")
+                ThinkingButton("命理师正在推演命盘…")
             } else if (viewModel.aiText.isNotBlank()) {
                 ResultCard {
                     Column {

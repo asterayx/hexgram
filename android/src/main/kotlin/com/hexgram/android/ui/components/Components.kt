@@ -1,5 +1,7 @@
 package com.hexgram.android.ui.components
 
+import androidx.compose.runtime.DisposableEffect
+import androidx.compose.ui.platform.LocalView
 import androidx.compose.animation.core.LinearEasing
 import androidx.compose.animation.core.RepeatMode
 import androidx.compose.animation.core.animateFloat
@@ -9,6 +11,7 @@ import androidx.compose.animation.core.tween
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
+import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -139,6 +142,47 @@ fun ResultCard(
 }
 
 @Composable
+fun ThinkingButton(
+    text: String = "Thinking…",
+    modifier: Modifier = Modifier
+) {
+    // Keep screen on while thinking
+    val view = LocalView.current
+    DisposableEffect(Unit) {
+        view.keepScreenOn = true
+        onDispose { view.keepScreenOn = false }
+    }
+
+    Column(
+        modifier = modifier
+            .fillMaxWidth()
+            .height(50.dp)
+            .clip(RoundedCornerShape(10.dp))
+            .background(HexgramColors.gold.copy(alpha = 0.15f))
+            .border(1.dp, HexgramColors.gold.copy(alpha = 0.4f), RoundedCornerShape(10.dp)),
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.Center
+    ) {
+        Text(
+            text = text,
+            fontSize = 14.sp,
+            fontFamily = SerifFont,
+            fontWeight = FontWeight.Medium,
+            color = HexgramColors.gold
+        )
+        Spacer(modifier = Modifier.height(4.dp))
+        LinearProgressIndicator(
+            modifier = Modifier
+                .fillMaxWidth(0.7f)
+                .height(3.dp)
+                .clip(RoundedCornerShape(2.dp)),
+            color = HexgramColors.gold,
+            trackColor = HexgramColors.border
+        )
+    }
+}
+
+@Composable
 fun GoldButton(
     text: String,
     onClick: () -> Unit,
@@ -206,6 +250,13 @@ fun LoadingSpinner(
     text: String = "加载中...",
     modifier: Modifier = Modifier
 ) {
+    // Keep screen on while loading
+    val view = LocalView.current
+    DisposableEffect(Unit) {
+        view.keepScreenOn = true
+        onDispose { view.keepScreenOn = false }
+    }
+
     Column(
         modifier = modifier
             .fillMaxWidth()

@@ -39,6 +39,7 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import com.hexgram.android.ui.components.GhostButton
 import com.hexgram.android.ui.components.GoldButton
 import com.hexgram.android.ui.components.LoadingSpinner
+import com.hexgram.android.ui.components.ThinkingButton
 import com.hexgram.android.ui.components.MarkdownText
 import com.hexgram.android.ui.components.PanelCard
 import com.hexgram.android.ui.components.ResultCard
@@ -171,13 +172,16 @@ fun LiuyaoScreen(viewModel: LiuyaoViewModel = viewModel()) {
             }
 
             Spacer(modifier = Modifier.height(12.dp))
-            Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+            if (viewModel.aiLoading) {
+                ThinkingButton("卦师正在参详卦象…")
+            } else {
                 GoldButton("🤖 AI深度解读", { viewModel.requestAI() })
-                GhostButton("再占一卦", { viewModel.reset() })
             }
+            Spacer(modifier = Modifier.height(8.dp))
+            GhostButton("再占一卦", { viewModel.reset() })
         }
 
-        // AI
+        // AI result
         if (viewModel.aiText.isNotBlank()) {
             Spacer(modifier = Modifier.height(16.dp))
             ResultCard {
@@ -259,9 +263,16 @@ private fun GuaResultView(gua: GuaResult) {
 
 @Composable
 fun NumberPickerField(label: String, value: Int, onValueChange: (Int) -> Unit, range: IntRange, modifier: Modifier = Modifier) {
+    var textState by remember(value) { mutableStateOf(value.toString()) }
     OutlinedTextField(
-        value = value.toString(),
-        onValueChange = { text -> text.filter { it.isDigit() }.toIntOrNull()?.let { if (it in range) onValueChange(it) } },
+        value = textState,
+        onValueChange = { text ->
+            val digits = text.filter { it.isDigit() }
+            if (digits.length <= range.last.toString().length) {
+                textState = digits
+                digits.toIntOrNull()?.let { if (it in range) onValueChange(it) }
+            }
+        },
         label = { Text(label, fontSize = 12.sp, fontFamily = SerifFont, color = HexgramColors.textTertiary) },
         modifier = modifier,
         colors = OutlinedTextFieldDefaults.colors(
