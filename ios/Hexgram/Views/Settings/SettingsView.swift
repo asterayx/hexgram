@@ -9,7 +9,7 @@ struct SettingsView: View {
                 VStack(spacing: 20) {
                     // 关于
                     VStack(spacing: 8) {
-                        Text("易学")
+                        Text("易学四术")
                             .font(.system(size: 28, weight: .bold, design: .serif))
                             .foregroundColor(.gold)
 

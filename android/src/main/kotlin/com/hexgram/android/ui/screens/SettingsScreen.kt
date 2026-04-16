@@ -81,7 +81,7 @@ fun SettingsScreen(
                 horizontalAlignment = Alignment.CenterHorizontally
             ) {
                 Text(
-                    text = "易学",
+                    text = "易学四术",
                     fontSize = 28.sp,
                     fontFamily = SerifFont,
                     fontWeight = FontWeight.Bold,
